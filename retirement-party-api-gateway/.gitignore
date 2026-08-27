@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Environment variables — NEVER commit
+.env
+.env.example
+
+# Firebase service account key — NEVER commit
+ServiceAccountKey.json
+*.json.key
+
+# Build artifacts
+dist/
+build/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
