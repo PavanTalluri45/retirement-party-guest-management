@@ -1,10 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
 import type { RSVPFormValues } from "@/types/rsvp";
 import { SESSION_STORAGE_KEY } from "../constants";
-import { buildConfirmationData } from "../utils";
+import { submitRegistration, ApiError } from "@/lib/api";
 
 const DEFAULT_VALUES: RSVPFormValues = {
   fullName: "",
@@ -16,28 +17,15 @@ const DEFAULT_VALUES: RSVPFormValues = {
 };
 
 /**
- * THE BUG (and the fix):
+ * Custom hook to manage the RSVP form.
  *
- * `mealPreference` and every `familyMembers.*` field only render
- * conditionally (when attending === "Yes", and only up to the current
- * family count). React Hook Form's default is `shouldUnregister: false`,
- * meaning a field that has ever mounted STAYS registered — with its
- * validation rules still active — even after the JSX that renders it
- * unmounts.
- *
- * Concretely: pick "Attending: Yes", bump the guest count up, then back
- * down (or flip to "No"). The now-hidden guest/meal fields are still
- * registered as required, still empty, so `handleSubmit` keeps failing
- * validation on every click — with no visible error, since the field
- * that's technically invalid isn't even on screen. That's the "phantom
- * validation error" that blocked navigation to /confirmation.
- *
- * `shouldUnregister: true` makes RHF drop a field's value + validation
- * state as soon as it unmounts, so only fields the user can currently
- * see are ever validated.
+ * Preserves `shouldUnregister: true` to prevent validation of unmounted fields.
+ * Integrates real API submission through the API Gateway.
  */
 export function useRsvpForm() {
   const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const form = useForm<RSVPFormValues>({
     defaultValues: DEFAULT_VALUES,
@@ -48,18 +36,39 @@ export function useRsvpForm() {
   const attending = form.watch("attending");
   const familyCount = form.watch("familyCount");
 
-  const onSubmit = form.handleSubmit((data) => {
-    const confirmationData = buildConfirmationData(data);
+  const onSubmit = form.handleSubmit(async (data) => {
+    setIsSubmitting(true);
+    setSubmitError(null);
 
-    sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(confirmationData));
+    try {
+      const confirmedData = await submitRegistration(data);
 
-    router.push("/confirmation");
+      sessionStorage.setItem(
+        SESSION_STORAGE_KEY,
+        JSON.stringify(confirmedData)
+      );
+
+      router.push("/confirmation");
+    } catch (error: unknown) {
+      if (error instanceof ApiError) {
+        setSubmitError(error.message);
+      } else {
+        setSubmitError(
+          "An unexpected error occurred while saving your RSVP. Please try again."
+        );
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   });
 
   return {
     ...form,
     attending,
     familyCount,
+    isSubmitting,
+    submitError,
+    clearError: () => setSubmitError(null),
     onSubmit,
   };
 }

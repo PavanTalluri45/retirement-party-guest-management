@@ -3,13 +3,34 @@ import app from "./app.js";
 
 async function startServer() {
   try {
+    console.log("[Gateway] ==================================================");
     console.log("[Gateway] Starting Retirement Party API Gateway...");
-    console.log(`[Gateway] Target Auth Service URL: ${config.authServiceUrl}`);
+    console.log(`[Gateway] Mode: ${config.nodeEnv}`);
+    console.log("[Gateway] Connected Downstream Microservices:");
+    console.log(`[Gateway]   1. Auth Service:         ${config.authServiceUrl}`);
+    console.log(`[Gateway]   2. Registration Service: ${config.registrationServiceUrl}`);
+    console.log("[Gateway] ==================================================");
 
     const server = app.listen(config.port, "0.0.0.0", () => {
-      console.log(`[Gateway] API Gateway running in ${config.nodeEnv} mode on http://0.0.0.0:${config.port}`);
-      console.log(`[Gateway] Health check: http://localhost:${config.port}/health`);
-      console.log(`[Gateway] Downstream Auth Service health: http://localhost:${config.port}/health/auth`);
+      console.log(`[Gateway] API Gateway running on http://0.0.0.0:${config.port}`);
+      console.log(`[Gateway]   - Gateway Health:            http://localhost:${config.port}/health`);
+      console.log(`[Gateway]   - All Services Health:       http://localhost:${config.port}/health/all`);
+      console.log(`[Gateway]   - Auth Service Health:       http://localhost:${config.port}/health/auth`);
+      console.log(`[Gateway]   - Registration Health:       http://localhost:${config.port}/health/registration`);
+      console.log("[Gateway] ==================================================");
+    });
+
+    // Handle port in use or server errors
+    server.on("error", (error) => {
+      if (error.code === "EADDRINUSE") {
+        console.error(
+          `[Gateway] FATAL: Port ${config.port} is already in use by another process.\n` +
+          `[Gateway] To resolve, terminate the existing process on port ${config.port} or choose a different port in .env.`
+        );
+      } else {
+        console.error("[Gateway] Server error:", error);
+      }
+      process.exit(1);
     });
 
     // Graceful Shutdown
@@ -36,4 +57,3 @@ async function startServer() {
 }
 
 startServer();
-

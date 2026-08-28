@@ -1,37 +1,42 @@
 import "dotenv/config";
+import app from "./src/app.js";
+import { connectDB } from "./src/config/database.js";
+import { ensureIndexes } from "./src/repositories/guest.repository.js";
+import { config } from "./src/config/env.js";
 
-import express from "express";
-import cors from "cors";
-import client from "./src/config/database.js";
-
-const app = express();
-const PORT = process.env.PORT;
-
-// Middleware
-app.use(cors());
-app.use(express.json());
-
-// Health check
-app.get("/", (req, res) => {
-  res.json({
-    success: true,
-    message: "Retirement Party Registration Service is running",
-  });
-});
-
-// Start server
 async function startServer() {
   try {
-    await client.connect();
+    // Connect to MongoDB Atlas
+    await connectDB();
+    console.log("[Registration Service] MongoDB connected successfully.");
 
-    console.log("MongoDB connected successfully");
+    // Ensure collection indexes exist
+    await ensureIndexes();
+    console.log("[Registration Service] Database indexes ensured.");
 
-    app.listen(PORT, () => {
-      console.log(`Server running on http://localhost:${PORT}`);
+    // Start HTTP server
+    const server = app.listen(config.port, () => {
+      console.log(
+        `[Registration Service] Server running on http://localhost:${config.port}`
+      );
     });
+
+    // Graceful shutdown
+    const shutdown = async (signal) => {
+      console.log(`\n[Registration Service] ${signal} received. Shutting down gracefully...`);
+      server.close(async () => {
+        const { closeDB } = await import("./src/config/database.js");
+        await closeDB();
+        console.log("[Registration Service] MongoDB connection closed.");
+        process.exit(0);
+      });
+    };
+
+    process.on("SIGINT", () => shutdown("SIGINT"));
+    process.on("SIGTERM", () => shutdown("SIGTERM"));
   } catch (error) {
-    console.error("Failed to start server:", error);
-   
+    console.error("[Registration Service] Failed to start server:", error);
+    process.exit(1);
   }
 }
 

@@ -34,6 +34,13 @@ export function getDb() {
   return db;
 }
 
+/**
+ * Setter used to inject mock or custom database instances (e.g. during testing)
+ */
+export function setDb(customDb) {
+  db = customDb;
+}
+
 export async function closeDB() {
   if (client) {
     await client.close();

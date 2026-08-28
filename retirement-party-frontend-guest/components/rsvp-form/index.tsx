@@ -9,6 +9,7 @@ import { FamilyCountSection } from "./sections/FamilyCountSection";
 import { MealPreferenceSection } from "./sections/MealPreferenceSection";
 import { SubmitSection } from "./sections/SubmitSection";
 import { useRsvpForm } from "./hooks/useRsvpForm";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export function RSVPForm() {
   const {
@@ -18,6 +19,8 @@ export function RSVPForm() {
     formState: { errors },
     attending,
     familyCount,
+    isSubmitting,
+    submitError,
     onSubmit,
   } = useRsvpForm();
 
@@ -34,6 +37,14 @@ export function RSVPForm() {
         >
           <div className="mx-auto w-full max-w-2xl px-5 py-8 sm:px-8 sm:py-10 lg:px-12 lg:py-12 xl:px-16">
             <form onSubmit={onSubmit} className="space-y-8">
+              {submitError && (
+                <Alert variant="destructive" className="border-red-200 bg-red-50 text-red-800">
+                  <AlertDescription className="text-red-700 font-medium">
+                    {submitError}
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <PersonalDetailsSection register={register} errors={errors} />
 
               <AttendanceSection control={control} errors={errors} />
@@ -53,7 +64,7 @@ export function RSVPForm() {
                 </>
               )}
 
-              <SubmitSection attending={attending} />
+              <SubmitSection attending={attending} isSubmitting={isSubmitting} />
             </form>
           </div>
         </motion.section>

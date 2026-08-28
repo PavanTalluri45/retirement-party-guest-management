@@ -1,11 +1,12 @@
 import type { RSVPData, RSVPFormValues, Attending } from "@/types/rsvp";
-import { MOCK_CONFIRMATION_NUMBER } from "./constants";
 
 /**
- * Maps raw react-hook-form values into the shape the confirmation
- * screen expects. Pure UI-side mapping only — no network/database calls.
+ * Formats client RSVP data with real confirmation number returned from backend.
  */
-export function buildConfirmationData(data: RSVPFormValues): RSVPData {
+export function buildConfirmationData(
+  data: RSVPFormValues,
+  confirmationNumber?: string
+): RSVPData {
   const isAttending = data.attending === "Yes";
 
   const familyMembers = isAttending
@@ -24,6 +25,6 @@ export function buildConfirmationData(data: RSVPFormValues): RSVPData {
     familyCount: isAttending ? data.familyCount : 0,
     mealPreference: isAttending ? data.mealPreference : "",
     familyMembers,
-    ...(isAttending ? { confirmationNumber: MOCK_CONFIRMATION_NUMBER } : {}),
+    ...(isAttending && confirmationNumber ? { confirmationNumber } : {}),
   };
 }

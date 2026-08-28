@@ -2,16 +2,19 @@
 
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, UserPlus, Eye, EyeOff, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import {
+  ArrowLeft,
+  UserPlus,
+  Eye,
+  EyeOff,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { createStaffApi } from "@/lib/api";
 
 interface StaffMemberFormData {
@@ -79,7 +82,9 @@ export function StaffMemberForm() {
         return;
       }
 
-      setSuccessMessage(`Staff member "${name}" created successfully! Redirecting...`);
+      setSuccessMessage(
+        `Staff member "${name}" created successfully! Redirecting...`,
+      );
       setFormData(EMPTY_FORM);
 
       // Redirect to staff list after short delay so admin sees confirmation
@@ -87,7 +92,10 @@ export function StaffMemberForm() {
         router.push("/staff/list");
       }, 1200);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to create staff member. Please try again.";
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Failed to create staff member. Please try again.";
       setErrorMessage(message);
     } finally {
       setIsLoading(false);
@@ -192,10 +200,7 @@ export function StaffMemberForm() {
                   Creating...
                 </>
               ) : (
-                <>
-                  <UserPlus className="h-4 w-4" />
-                  Create Staff Member
-                </>
+                <>Create Staff Member</>
               )}
             </Button>
             <Button

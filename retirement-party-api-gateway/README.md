@@ -73,9 +73,17 @@ retirement-party-api-gateway/
 │   ├── app.js                  # Express application setup
 │   └── server.js               # Server startup & graceful shutdown
 ├── tests/
-│   ├── authenticate.test.js    # 4 unit tests for auth middleware
-│   ├── health.test.js          # 3 unit tests for health endpoints
-│   └── auth.routes.test.js     # 6 unit tests for auth routing & error mapping
+│   ├── middleware/
+│   │   ├── authenticate.test.js  # 7 unit tests for auth middleware (Jest)
+│   │   └── error-handler.test.js # 11 unit tests for error handling (Jest)
+│   ├── routes/
+│   │   ├── health.test.js        # 5 integration tests with Supertest (Jest)
+│   │   └── auth.routes.test.js   # 17 integration tests with Supertest (Jest)
+│   ├── services/
+│   │   └── auth-client.test.js   # 9 unit tests for auth-client service (Jest)
+│   └── utils/
+│       └── proxy-request.test.js # 8 unit tests for proxy utility (Jest)
+├── jest.config.js              # Jest ESM configuration
 ├── .env.example
 ├── .gitignore
 ├── .dockerignore
@@ -151,7 +159,33 @@ All routes require `Authorization: Bearer <Firebase ID Token>`.
 
 ---
 
-## 6. Running Locally
+## 6. Testing with Jest & Supertest
+
+The test suite runs with **Jest** and **Supertest** with native ES Modules support.
+
+```bash
+# 1. Run all tests
+npm test
+
+# 2. Run tests in watch mode
+npm run test:watch
+
+# 3. Generate test coverage report
+npm run test:coverage
+```
+
+### Test Coverage Highlights
+- **6 Test Suites** with **57 automated tests** covering:
+  - `authenticate.test.js`: Bearer token validation, expired token mapping, revoked token mapping, valid identity attachment.
+  - `error-handler.test.js`: Zod validation errors, ProxyError/connection failures (502), explicit HTTP codes (401, 403, 404, 409, 429, 503), production error masking.
+  - `proxy-request.test.js`: Header forwarding, body serialization, non-JSON handling, network failure conversion.
+  - `auth-client.test.js`: Downstream URL routing, HTTP methods, token and body propagation across all 9 client operations.
+  - `health.test.js`: Self-health check, upstream health proxying, degraded service status handling.
+  - `auth.routes.test.js`: Route-level Supertest integration for `/auth/me`, `/auth/sync`, `/auth/admin/register`, `/auth/staff`, status updates, revocations, and 502 error mapping.
+
+---
+
+## 7. Running Locally
 
 ### Prerequisites
 1. Node.js 20+
@@ -162,19 +196,16 @@ All routes require `Authorization: Bearer <Firebase ID Token>`.
 # 1. Install dependencies
 npm install
 
-# 2. Run automated test suite
-npm test
-
-# 3. Start development server (with nodemon)
+# 2. Start development server (with nodemon)
 npm run dev
 
-# 4. Start production server
+# 3. Start production server
 npm start
 ```
 
 ---
 
-## 7. Running with Docker
+## 8. Running with Docker
 
 ```bash
 # Build the Docker image
@@ -186,4 +217,3 @@ docker run -p 4000:4000 \
   -e CORS_ORIGINS=http://localhost:3000,http://localhost:3001 \
   retirement-party-api-gateway
 ```
-

@@ -6,6 +6,7 @@ import { generalLimiter } from "./middleware/rate-limit.js";
 import { errorHandler } from "./middleware/error-handler.js";
 import healthRoutes from "./routes/health.routes.js";
 import authRoutes from "./routes/auth.routes.js";
+import registrationRoutes from "./routes/registration.routes.js";
 
 const app = express();
 
@@ -60,6 +61,7 @@ app.get("/", (req, res) => {
 // 7. Mount Routes
 app.use(healthRoutes);
 app.use(authRoutes);
+app.use(registrationRoutes);
 
 // 8. 404 Route Not Found
 app.use((req, res) => {

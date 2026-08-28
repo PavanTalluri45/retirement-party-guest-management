@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Building2, UserPlus, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -24,12 +24,13 @@ export function DashboardHeader() {
   };
 
   const displayName = appUser?.name || "Admin";
-  const initials = displayName
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .substring(0, 2)
-    .toUpperCase() || "A";
+  const initials =
+    displayName
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .substring(0, 2)
+      .toUpperCase() || "A";
 
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -73,7 +74,6 @@ export function DashboardHeader() {
             onClick={() => router.push("/staff/list")}
             className="cursor-pointer"
           >
-            <Building2 />
             Staff by Company
           </DropdownMenuItem>
 
@@ -82,7 +82,6 @@ export function DashboardHeader() {
             onClick={() => router.push("/staff/create")}
             className="cursor-pointer"
           >
-            <UserPlus />
             Add Staff Member
           </DropdownMenuItem>
 
