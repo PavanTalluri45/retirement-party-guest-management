@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { authClient } from "../services/auth-client.js";
 import { registrationClient } from "../services/registration-client.js";
+import { verificationClient } from "../services/verification-client.js";
 
 const router = Router();
 
@@ -13,7 +14,7 @@ router.get("/health", (req, res) => {
     success: true,
     service: "retirement-party-api-gateway",
     status: "healthy",
-    services: ["auth", "registration"],
+    services: ["auth", "registration", "verification"],
     timestamp: new Date().toISOString(),
   });
 });
@@ -65,13 +66,37 @@ router.get("/health/registration", async (req, res) => {
 });
 
 /**
+ * Verification Service health check from Gateway
+ * GET /health/verification
+ */
+router.get("/health/verification", async (req, res) => {
+  try {
+    const result = await verificationClient.getHealth(req);
+    res.status(result.status).json({
+      gateway: "healthy",
+      verificationService: result.data,
+    });
+  } catch (error) {
+    res.status(503).json({
+      gateway: "healthy",
+      verificationService: {
+        success: false,
+        status: "unreachable",
+        message: error.message,
+      },
+    });
+  }
+});
+
+/**
  * Consolidated health check for all downstream services
  * GET /health/all
  */
 router.get("/health/all", async (req, res) => {
-  const [authRes, regRes] = await Promise.allSettled([
+  const [authRes, regRes, verRes] = await Promise.allSettled([
     authClient.checkHealth(),
     registrationClient.checkHealth(),
+    verificationClient.getHealth(req),
   ]);
 
   const authHealth =
@@ -84,11 +109,18 @@ router.get("/health/all", async (req, res) => {
       ? regRes.value.data
       : { success: false, status: "unreachable", message: regRes.reason?.message };
 
+  const verHealth =
+    verRes.status === "fulfilled"
+      ? verRes.value.data
+      : { success: false, status: "unreachable", message: verRes.reason?.message };
+
   const allHealthy =
     authRes.status === "fulfilled" &&
     authRes.value.status === 200 &&
     regRes.status === "fulfilled" &&
-    regRes.value.status === 200;
+    regRes.value.status === 200 &&
+    verRes.status === "fulfilled" &&
+    verRes.value.status === 200;
 
   res.status(allHealthy ? 200 : 207).json({
     gateway: "healthy",
@@ -96,6 +128,7 @@ router.get("/health/all", async (req, res) => {
     services: {
       authService: authHealth,
       registrationService: regHealth,
+      verificationService: verHealth,
     },
     timestamp: new Date().toISOString(),
   });

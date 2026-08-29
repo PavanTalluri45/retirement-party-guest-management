@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface StatusBannerProps {
   error?: string;
@@ -8,19 +8,19 @@ interface StatusBannerProps {
 export function StatusBanner({ error, success }: StatusBannerProps) {
   if (error) {
     return (
-      <div className="mt-4 flex min-h-[56px] items-center gap-3 rounded-lg border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-        <AlertCircle className="h-5 w-5 shrink-0" />
-        <span className="font-medium">{error}</span>
-      </div>
+      <Alert variant="destructive" className="mt-4 min-h-[56px] items-center">
+        <AlertDescription className="font-medium">{error}</AlertDescription>
+      </Alert>
     );
   }
 
   if (success) {
     return (
-      <div className="mt-4 flex min-h-[56px] items-center gap-3 rounded-lg border border-emerald-500/40 bg-emerald-500/5 px-4 py-3 text-sm font-medium text-emerald-700 dark:text-emerald-400">
-        <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
-        <span>{success}</span>
-      </div>
+      <Alert className="mt-4 min-h-[56px] items-center border-emerald-500/40 bg-emerald-500/5">
+        <AlertDescription className="font-medium text-emerald-700 dark:text-emerald-400">
+          {success}
+        </AlertDescription>
+      </Alert>
     );
   }
 

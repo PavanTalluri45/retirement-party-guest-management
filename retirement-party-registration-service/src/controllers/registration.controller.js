@@ -1,5 +1,5 @@
 import * as registrationService from "../services/registration.service.js";
-import { ConfirmationNumberParamSchema, IdParamSchema } from "../validators/registration.validator.js";
+import { ConfirmationNumberParamSchema, IdParamSchema, PhoneParamSchema } from "../validators/registration.validator.js";
 import { ObjectId } from "mongodb";
 
 /**
@@ -68,6 +68,32 @@ export async function getById(req, res, next) {
     next(error);
   }
 }
+
+/**
+ * GET /registrations/phone/:phone
+ */
+export async function getByPhone(req, res, next) {
+  try {
+    const parsed = PhoneParamSchema.safeParse(req.params);
+    if (!parsed.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid phone number format.",
+        errors: (parsed.error.issues || parsed.error.errors || []).map((e) => e.message),
+      });
+    }
+
+    const guest = await registrationService.getGuestByPhone(parsed.data.phone);
+
+    return res.status(200).json({
+      success: true,
+      data: guest,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
 
 /**
  * GET /health

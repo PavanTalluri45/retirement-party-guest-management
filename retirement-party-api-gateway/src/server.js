@@ -9,6 +9,7 @@ async function startServer() {
     console.log("[Gateway] Connected Downstream Microservices:");
     console.log(`[Gateway]   1. Auth Service:         ${config.authServiceUrl}`);
     console.log(`[Gateway]   2. Registration Service: ${config.registrationServiceUrl}`);
+    console.log(`[Gateway]   3. Verification Service: ${config.verificationServiceUrl}`);
     console.log("[Gateway] ==================================================");
 
     const server = app.listen(config.port, "0.0.0.0", () => {
@@ -17,8 +18,10 @@ async function startServer() {
       console.log(`[Gateway]   - All Services Health:       http://localhost:${config.port}/health/all`);
       console.log(`[Gateway]   - Auth Service Health:       http://localhost:${config.port}/health/auth`);
       console.log(`[Gateway]   - Registration Health:       http://localhost:${config.port}/health/registration`);
+      console.log(`[Gateway]   - Verification Health:       http://localhost:${config.port}/verification/health`);
       console.log("[Gateway] ==================================================");
     });
+
 
     // Handle port in use or server errors
     server.on("error", (error) => {

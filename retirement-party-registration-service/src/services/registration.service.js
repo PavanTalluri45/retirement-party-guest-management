@@ -104,6 +104,24 @@ export async function getGuestById(id) {
 }
 
 /**
+ * Find a guest by their registered phone number.
+ *
+ * @param {string} phone
+ * @returns {Promise<object>} - formatted guest
+ * @throws {NotFoundError}
+ */
+export async function getGuestByPhone(phone) {
+  const guest = await guestRepository.findByPhone(phone);
+  if (!guest) {
+    const err = new Error(`No guest found with phone: ${phone}`);
+    err.type = "NOT_FOUND";
+    throw err;
+  }
+  return formatGuest(guest);
+}
+
+
+/**
  * Format a raw MongoDB document for API response.
  * Converts _id to id string, removes internal fields.
  */

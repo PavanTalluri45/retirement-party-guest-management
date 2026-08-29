@@ -95,3 +95,11 @@ export const IdParamSchema = z.object({
     .regex(/^[a-f\d]{24}$/i, "Invalid ID format."),
 });
 
+/** Schema for :phone URL param */
+export const PhoneParamSchema = z.object({
+  phone: z
+    .string()
+    .regex(/^[0-9]{10}$/, "Phone number must be exactly 10 digits."),
+});
+
+

@@ -3,6 +3,7 @@ import request from "supertest";
 import app from "../../src/app.js";
 import { authClient } from "../../src/services/auth-client.js";
 import { registrationClient } from "../../src/services/registration-client.js";
+import { verificationClient } from "../../src/services/verification-client.js";
 
 describe("Health Routes Integration Tests (Supertest)", () => {
   beforeEach(() => {
@@ -29,7 +30,7 @@ describe("Health Routes Integration Tests (Supertest)", () => {
     expect(res.body.success).toBe(true);
     expect(res.body.service).toBe("retirement-party-api-gateway");
     expect(res.body.status).toBe("healthy");
-    expect(res.body.services).toEqual(["auth", "registration"]);
+    expect(res.body.services).toEqual(["auth", "registration", "verification"]);
     expect(res.body.timestamp).toBeDefined();
   });
 
@@ -106,6 +107,42 @@ describe("Health Routes Integration Tests (Supertest)", () => {
     });
   });
 
+  it("GET /health/verification should return 200 when Verification Service is healthy", async () => {
+    const mockVerificationHealthData = {
+      success: true,
+      service: "retirement-party-verification-service",
+      status: "healthy",
+      timestamp: "2026-08-28T00:00:00.000Z",
+    };
+
+    jest.spyOn(verificationClient, "getHealth").mockResolvedValueOnce({
+      status: 200,
+      data: mockVerificationHealthData,
+    });
+
+    const res = await request(app).get("/health/verification");
+
+    expect(res.status).toBe(200);
+    expect(res.body.gateway).toBe("healthy");
+    expect(res.body.verificationService).toEqual(mockVerificationHealthData);
+  });
+
+  it("GET /health/verification should return 503 when Verification Service is unreachable", async () => {
+    jest.spyOn(verificationClient, "getHealth").mockRejectedValueOnce(
+      new Error("Failed to reach downstream service at http://localhost:5002/health")
+    );
+
+    const res = await request(app).get("/health/verification");
+
+    expect(res.status).toBe(503);
+    expect(res.body.gateway).toBe("healthy");
+    expect(res.body.verificationService).toEqual({
+      success: false,
+      status: "unreachable",
+      message: expect.stringContaining("Failed to reach downstream"),
+    });
+  });
+
   it("GET /health/all should return 200 and overall healthy when all services are up", async () => {
     jest.spyOn(authClient, "checkHealth").mockResolvedValueOnce({
       status: 200,
@@ -115,6 +152,10 @@ describe("Health Routes Integration Tests (Supertest)", () => {
       status: 200,
       data: { success: true, service: "retirement-party-registration-service", status: "healthy" },
     });
+    jest.spyOn(verificationClient, "getHealth").mockResolvedValueOnce({
+      status: 200,
+      data: { success: true, service: "retirement-party-verification-service", status: "healthy" },
+    });
 
     const res = await request(app).get("/health/all");
 
@@ -123,6 +164,7 @@ describe("Health Routes Integration Tests (Supertest)", () => {
     expect(res.body.overallStatus).toBe("healthy");
     expect(res.body.services.authService.status).toBe("healthy");
     expect(res.body.services.registrationService.status).toBe("healthy");
+    expect(res.body.services.verificationService.status).toBe("healthy");
   });
 
   it("GET /health/all should return 207 and overall degraded when a downstream service is down", async () => {
@@ -133,6 +175,10 @@ describe("Health Routes Integration Tests (Supertest)", () => {
     jest.spyOn(registrationClient, "checkHealth").mockRejectedValueOnce(
       new Error("Registration service unreachable")
     );
+    jest.spyOn(verificationClient, "getHealth").mockResolvedValueOnce({
+      status: 200,
+      data: { success: true, status: "healthy" },
+    });
 
     const res = await request(app).get("/health/all");
 

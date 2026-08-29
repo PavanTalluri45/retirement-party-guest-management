@@ -15,6 +15,10 @@ export const config = {
   /** Internal URL of the Registration Service — never exposed to the client */
   registrationServiceUrl: process.env.REGISTRATION_SERVICE_URL || "http://localhost:5001",
 
+  /** Internal URL of the Verification Service — never exposed to the client */
+  verificationServiceUrl: process.env.VERIFICATION_SERVICE_URL || "http://localhost:5002",
+
+
   /** Comma-separated allowed CORS origins */
   corsOrigins: process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(",").map((o) => o.trim())

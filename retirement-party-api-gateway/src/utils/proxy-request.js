@@ -28,6 +28,11 @@ export async function proxyRequest(targetUrl, req, options = {}) {
     headers["Authorization"] = `Bearer ${req.auth.idToken}`;
   }
 
+  // Forward X-Request-ID if available
+  if (req.headers?.["x-request-id"] || req.requestId) {
+    headers["X-Request-ID"] = req.headers?.["x-request-id"] || req.requestId;
+  }
+
   const fetchOptions = {
     method,
     headers,
@@ -60,13 +65,32 @@ export async function proxyRequest(targetUrl, req, options = {}) {
       data = { success: response.ok, message: text };
     }
 
-    return {
+    const responseHeaders = {};
+    if (response.headers.get("server-timing")) {
+      responseHeaders["server-timing"] = response.headers.get("server-timing");
+    }
+    if (response.headers.get("x-verification-duration-ms")) {
+      responseHeaders["x-verification-duration-ms"] = response.headers.get("x-verification-duration-ms");
+    }
+    if (response.headers.get("x-request-id")) {
+      responseHeaders["x-request-id"] = response.headers.get("x-request-id");
+    }
+
+    const result = {
       status: response.status,
       data,
     };
+
+    if (Object.keys(responseHeaders).length > 0 || options.includeHeaders) {
+      result.headers = responseHeaders;
+    }
+
+    return result;
+
   } catch (error) {
     console.error(`[Proxy Failure] ${method} ${targetUrl}: ${error.message}`);
     throw new ProxyError(`Failed to reach downstream service at ${targetUrl}`, error);
   }
 }
+
 

@@ -21,6 +21,7 @@ export function CheckInPage() {
     verificationMethod,
     inputValue,
     attendee,
+    verificationMeta,
     loading,
     error,
     success,
@@ -32,8 +33,7 @@ export function CheckInPage() {
   } = useAttendeeVerification();
 
   const handleViewHistory = () => {
-    console.log("View check-in history");
-    // Navigate to history page or open modal
+    router.push("/staff/check-in-history");
   };
 
   const handleLogout = async () => {
@@ -67,7 +67,7 @@ export function CheckInPage() {
                 variant="ghost"
                 size="sm"
                 onClick={resetForm}
-                className="self-start text-xs font-medium text-muted-foreground hover:text-foreground gap-1.5 mt-2 sm:mt-0"
+                className="self-start text-xs font-medium text-muted-foreground hover:text-foreground gap-1.5 mt-2 sm:mt-0 cursor-pointer"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
                 Reset &amp; Search Next
@@ -97,6 +97,7 @@ export function CheckInPage() {
         {attendee && (
           <AttendeeCard
             attendee={attendee}
+            meta={verificationMeta}
             loading={loading}
             onCheckIn={checkInAttendee}
             onResetForm={resetForm}
@@ -106,3 +107,5 @@ export function CheckInPage() {
     </div>
   );
 }
+
+export default CheckInPage;

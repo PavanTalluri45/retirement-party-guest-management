@@ -7,6 +7,8 @@ import { errorHandler } from "./middleware/error-handler.js";
 import healthRoutes from "./routes/health.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import registrationRoutes from "./routes/registration.routes.js";
+import verificationRoutes from "./routes/verification.routes.js";
+import crypto from "node:crypto";
 
 const app = express();
 
@@ -27,7 +29,8 @@ const corsOptions = {
   },
   credentials: true,
   methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Request-ID"],
+  exposedHeaders: ["Server-Timing", "X-Verification-Duration-Ms", "X-Request-ID"],
 };
 app.use(cors(corsOptions));
 
@@ -38,12 +41,20 @@ app.use(generalLimiter);
 app.use(express.json({ limit: "100kb" }));
 app.use(express.urlencoded({ extended: false, limit: "100kb" }));
 
-// 5. Request Logging (SAFE: No tokens, passwords, or credentials logged)
+// 5. Request Correlation ID & Request Logging (SAFE: No tokens or passwords logged)
 app.use((req, res, next) => {
+  const incomingId =
+    req.headers["x-request-id"] ||
+    req.headers["x-correlation-id"] ||
+    crypto.randomUUID();
+
+  req.requestId = incomingId;
+  res.setHeader("X-Request-ID", incomingId);
+
   const start = Date.now();
   res.on("finish", () => {
     const duration = Date.now() - start;
-    console.log(`[Gateway] ${req.method} ${req.originalUrl} ${res.statusCode} (${duration}ms)`);
+    console.log(`[Gateway] [${incomingId}] ${req.method} ${req.originalUrl} ${res.statusCode} (${duration}ms)`);
   });
   next();
 });
@@ -62,6 +73,8 @@ app.get("/", (req, res) => {
 app.use(healthRoutes);
 app.use(authRoutes);
 app.use(registrationRoutes);
+app.use(verificationRoutes);
+
 
 // 8. 404 Route Not Found
 app.use((req, res) => {

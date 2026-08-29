@@ -1,12 +1,12 @@
-import type { AttendeeInfo } from "@/lib/check-in/types";
+import type { AttendeeInfo, VerificationMeta } from "@/lib/check-in/types";
 import { AttendeeProfileHeader } from "@/components/check-in/attendee-profile-header";
 import { AttendeeDetailsGrid } from "@/components/check-in/attendee-details-grid";
 import { AttendeeFamilyMembers } from "@/components/check-in/attendee-family-members";
-import { AttendeeQrPreview } from "@/components/check-in/attendee-qr-preview";
 import { CheckInActions } from "@/components/check-in/check-in-actions";
 
 interface AttendeeCardProps {
   attendee: AttendeeInfo;
+  meta?: VerificationMeta | null;
   loading: boolean;
   onCheckIn: () => void;
   onResetForm: () => void;
@@ -14,13 +14,14 @@ interface AttendeeCardProps {
 
 export function AttendeeCard({
   attendee,
+  meta,
   loading,
   onCheckIn,
   onResetForm,
 }: AttendeeCardProps) {
   return (
     <section className="animate-in fade-in slide-in-from-bottom-3 duration-300 rounded-xl border border-border/80 bg-card shadow-xs overflow-hidden">
-      <AttendeeProfileHeader attendee={attendee} />
+      <AttendeeProfileHeader attendee={attendee} meta={meta} />
 
       {/* Structured Metadata Grid */}
       <div className="p-5 sm:p-6">
@@ -34,9 +35,6 @@ export function AttendeeCard({
           <AttendeeFamilyMembers members={attendee.familyMembers} />
         )}
 
-        {attendee.qrCodeDataUrl && (
-          <AttendeeQrPreview qrCodeDataUrl={attendee.qrCodeDataUrl} />
-        )}
       </div>
 
       <CheckInActions
