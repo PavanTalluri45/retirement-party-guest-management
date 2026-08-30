@@ -79,6 +79,11 @@ export async function findById(id) {
   return db.collection(COLLECTION).findOne({ _id: new ObjectId(id) });
 }
 
+export async function findAll() {
+  const db = getDb();
+  return db.collection(COLLECTION).find({}).sort({ registeredAt: -1 }).toArray();
+}
+
 /**
  * Check whether a confirmation number is already in use.
  * @param {string} confirmationNumber

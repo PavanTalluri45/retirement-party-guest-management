@@ -23,6 +23,15 @@ export const registrationClient = {
   },
 
   /**
+   * List all registered guests for the admin dashboard
+   * GET /registrations
+   */
+  async getAll(req) {
+    const url = `${config.registrationServiceUrl}/registrations`;
+    return await proxyRequest(url, req, { method: "GET" });
+  },
+
+  /**
    * Look up an attending guest by 4-digit confirmation number
    * GET /registrations/confirmation/:confirmationNumber
    */

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { authClient } from "../services/auth-client.js";
 import { registrationClient } from "../services/registration-client.js";
 import { verificationClient } from "../services/verification-client.js";
+import { analyticsClient } from "../services/analytics-client.js";
 
 const router = Router();
 
@@ -14,7 +15,7 @@ router.get("/health", (req, res) => {
     success: true,
     service: "retirement-party-api-gateway",
     status: "healthy",
-    services: ["auth", "registration", "verification"],
+    services: ["auth", "registration", "verification", "analytics"],
     timestamp: new Date().toISOString(),
   });
 });
@@ -89,14 +90,38 @@ router.get("/health/verification", async (req, res) => {
 });
 
 /**
+ * Analytics Service health check from Gateway
+ * GET /health/analytics
+ */
+router.get("/health/analytics", async (req, res) => {
+  try {
+    const result = await analyticsClient.getHealth(req);
+    res.status(result.status).json({
+      gateway: "healthy",
+      analyticsService: result.data,
+    });
+  } catch (error) {
+    res.status(503).json({
+      gateway: "healthy",
+      analyticsService: {
+        success: false,
+        status: "unreachable",
+        message: error.message,
+      },
+    });
+  }
+});
+
+/**
  * Consolidated health check for all downstream services
  * GET /health/all
  */
 router.get("/health/all", async (req, res) => {
-  const [authRes, regRes, verRes] = await Promise.allSettled([
+  const [authRes, regRes, verRes, anaRes] = await Promise.allSettled([
     authClient.checkHealth(),
     registrationClient.checkHealth(),
     verificationClient.getHealth(req),
+    analyticsClient.getHealth(req),
   ]);
 
   const authHealth =
@@ -114,13 +139,20 @@ router.get("/health/all", async (req, res) => {
       ? verRes.value.data
       : { success: false, status: "unreachable", message: verRes.reason?.message };
 
+  const anaHealth =
+    anaRes.status === "fulfilled"
+      ? anaRes.value.data
+      : { success: false, status: "unreachable", message: anaRes.reason?.message };
+
   const allHealthy =
     authRes.status === "fulfilled" &&
     authRes.value.status === 200 &&
     regRes.status === "fulfilled" &&
     regRes.value.status === 200 &&
     verRes.status === "fulfilled" &&
-    verRes.value.status === 200;
+    verRes.value.status === 200 &&
+    anaRes.status === "fulfilled" &&
+    anaRes.value.status === 200;
 
   res.status(allHealthy ? 200 : 207).json({
     gateway: "healthy",
@@ -129,6 +161,7 @@ router.get("/health/all", async (req, res) => {
       authService: authHealth,
       registrationService: regHealth,
       verificationService: verHealth,
+      analyticsService: anaHealth,
     },
     timestamp: new Date().toISOString(),
   });

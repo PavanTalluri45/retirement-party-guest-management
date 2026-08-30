@@ -204,7 +204,10 @@ export default function StaffListPage() {
   }, []);
 
   useEffect(() => {
-    fetchStaffList();
+    const timer = setTimeout(() => {
+      fetchStaffList();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchStaffList]);
 
   const handleToggleStatus = async (firebaseUid: string, currentStatus: boolean) => {

@@ -1,25 +1,60 @@
 "use client";
 
-import { useState, useMemo } from "react";
-
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { StatsCards } from "@/components/dashboard/stats-cards";
 import { FoodPreferenceChart } from "@/components/dashboard/food-preference-chart";
 import { AttendanceChart } from "@/components/dashboard/attendance-chart";
 import { RsvpFilters } from "@/components/dashboard/rsvp-filters";
 import { RsvpTable } from "@/components/dashboard/rsvp-table";
-
 import { ProtectedRoute } from "@/components/auth/protected-route";
-import { MOCK_RSVPS, ITEMS_PER_PAGE } from "@/lib/dashboard/mock-data";
+import { useAnalytics } from "@/hooks/use-analytics";
+import { fetchRegistrationsApi } from "@/lib/api";
 import type {
   RsvpRecord,
   SortConfig,
   AttendingFilter,
-  FoodFilter,
 } from "@/lib/dashboard/types";
+import { ITEMS_PER_PAGE } from "@/lib/dashboard/types";
+import { Button } from "@/components/ui/button";
+import { AlertCircle } from "lucide-react";
 
 export default function DashboardPage() {
-  const [rsvpData, setRsvpData] = useState<RsvpRecord[]>(MOCK_RSVPS);
+  // Real Analytics API Integration
+  const {
+    summary,
+    loading: analyticsLoading,
+    error: analyticsError,
+    refresh: refreshAnalytics,
+  } = useAnalytics();
+
+  const [rsvpData, setRsvpData] = useState<RsvpRecord[]>([]);
+  const [rsvpLoading, setRsvpLoading] = useState(true);
+  const [rsvpError, setRsvpError] = useState<string | null>(null);
+
+  const loadRsvps = useCallback(async () => {
+    setRsvpLoading(true);
+    setRsvpError(null);
+    try {
+      const response = await fetchRegistrationsApi();
+      if (response.success && response.data) {
+        setRsvpData(response.data);
+      } else {
+        setRsvpError(response.message || "Failed to load RSVPs.");
+      }
+    } catch (error: unknown) {
+      setRsvpError(error instanceof Error ? error.message : "Failed to load RSVPs.");
+    } finally {
+      setRsvpLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void loadRsvps();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [loadRsvps]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [sortConfig, setSortConfig] = useState<SortConfig>({
@@ -27,23 +62,14 @@ export default function DashboardPage() {
     direction: "descending",
   });
   const [attendingFilter, setAttendingFilter] = useState<AttendingFilter>("all");
-  const [foodFilter, setFoodFilter] = useState<FoodFilter>("all");
 
-  // Derived stats (computed live from mock data, incl. local check-ins)
-  const stats = useMemo(() => {
-    const totalRsvps = rsvpData.length;
-    const attending = rsvpData.filter((r) => r.isAttending === "Yes").length;
-    const attended = rsvpData.filter((r) => r.attended).length;
-    const vegCount = rsvpData.filter(
-      (r) => r.isAttending === "Yes" && r.foodPreference === "veg",
-    ).length;
-    const nonVegCount = rsvpData.filter(
-      (r) => r.isAttending === "Yes" && r.foodPreference === "nonveg",
-    ).length;
-    return { totalRsvps, attending, attended, vegCount, nonVegCount };
-  }, [rsvpData]);
+  // Derive display values from real Analytics Service data (with fallback while loading)
+  const totalRsvps = summary?.registrations?.total ?? 0;
+  const expectedAttendees = summary?.attendance?.expectedAttendees ?? 0;
+  const attendedCount = summary?.attendance?.totalAttended ?? 0;
+  const attendanceRate = summary?.attendance?.attendancePercentage ?? 0;
 
-  // Sorting
+  // Sorting for local RSVP Table
   const sortedData = useMemo(() => {
     const sortable = [...rsvpData];
     sortable.sort((a, b) => {
@@ -62,23 +88,21 @@ export default function DashboardPage() {
     return sortable;
   }, [rsvpData, sortConfig]);
 
-  // Filtering
+  // Filtering for local RSVP Table
   const filteredData = useMemo(() => {
     return sortedData.filter((item) => {
       const matchesAttending =
         attendingFilter === "all" ||
         (attendingFilter === "yes" && item.isAttending === "Yes") ||
         (attendingFilter === "no" && item.isAttending !== "Yes");
-      const matchesFood =
-        foodFilter === "all" || item.foodPreference === foodFilter;
-      return matchesAttending && matchesFood;
+      return matchesAttending;
     });
-  }, [sortedData, attendingFilter, foodFilter]);
+  }, [sortedData, attendingFilter]);
 
-  // Pagination
+  // Pagination for local RSVP Table
   const totalPages = Math.max(
     Math.ceil(filteredData.length / ITEMS_PER_PAGE),
-    1,
+    1
   );
   const displayPage = Math.min(currentPage, totalPages);
   const indexOfLastItem = displayPage * ITEMS_PER_PAGE;
@@ -94,62 +118,80 @@ export default function DashboardPage() {
     setCurrentPage(1);
   };
 
-  const toggleAttended = (id: string) => {
-    setRsvpData((prev) =>
-      prev.map((item) =>
-        item.id === id && !item.attended
-          ? { ...item, attended: true, attendedAt: new Date().toISOString() }
-          : item,
-      ),
-    );
-  };
-
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-background p-4 md:p-8">
         <div className="max-w-7xl mx-auto space-y-6">
-          <DashboardHeader />
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <DashboardHeader />
+          </div>
+
+          {analyticsError && (
+            <div className="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                <span>{analyticsError}</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => void refreshAnalytics()}
+                className="text-destructive hover:bg-destructive/20"
+              >
+                Retry
+              </Button>
+            </div>
+          )}
+
+          {rsvpError && (
+            <div className="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+              <span>{rsvpError}</span>
+              <Button variant="ghost" size="sm" onClick={() => void loadRsvps()}>
+                Retry
+              </Button>
+            </div>
+          )}
 
           <StatsCards
-            totalRsvps={stats.totalRsvps}
-            attending={stats.attending}
-            attended={stats.attended}
+            totalRsvps={totalRsvps}
+            attending={expectedAttendees}
+            attended={attendedCount}
+            attendanceRate={attendanceRate}
+            loading={analyticsLoading}
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <FoodPreferenceChart
-              vegCount={stats.vegCount}
-              nonVegCount={stats.nonVegCount}
+              vegCount={summary?.meals?.vegetarian ?? 0}
+              nonVegCount={summary?.meals?.nonVegetarian ?? 0}
+              loading={analyticsLoading}
             />
             <AttendanceChart
-              totalRsvps={stats.totalRsvps}
-              attending={stats.attending}
-              attended={stats.attended}
+              totalRsvps={totalRsvps}
+              attending={expectedAttendees}
+              attended={attendedCount}
+              loading={analyticsLoading}
             />
           </div>
 
           <RsvpFilters
             attendingFilter={attendingFilter}
-            foodFilter={foodFilter}
             onAttendingFilterChange={(value) => {
               setAttendingFilter(value);
               setCurrentPage(1);
             }}
-            onFoodFilterChange={(value) => {
-              setFoodFilter(value);
-              setCurrentPage(1);
-            }}
+            loading={rsvpLoading}
           />
 
           <RsvpTable
-            items={currentItems}
+            items={rsvpLoading ? [] : currentItems}
             filteredCount={filteredData.length}
             currentPage={displayPage}
             totalPages={totalPages}
             sortConfig={sortConfig}
             onSort={requestSort}
-            onToggleAttended={toggleAttended}
             onPageChange={setCurrentPage}
+            loading={rsvpLoading}
           />
         </div>
       </div>

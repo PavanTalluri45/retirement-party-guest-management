@@ -15,14 +15,16 @@ import {
   ChartLegendContent,
 } from "@/components/ui/chart";
 import { attendanceChartConfig } from "@/lib/dashboard/chart-config";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface AttendanceChartProps {
   totalRsvps: number;
   attending: number;
   attended: number;
+  loading?: boolean;
 }
 
-export function AttendanceChart({ totalRsvps, attending, attended }: AttendanceChartProps) {
+export function AttendanceChart({ totalRsvps, attending, attended, loading = false }: AttendanceChartProps) {
   const attendanceData = [
     { metric: "total", value: totalRsvps },
     { metric: "attending", value: attending },
@@ -37,7 +39,7 @@ export function AttendanceChart({ totalRsvps, attending, attended }: AttendanceC
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={attendanceChartConfig} className="h-64 w-full">
+        {loading ? <Skeleton className="h-64 w-full rounded-md" /> : <ChartContainer config={attendanceChartConfig} className="h-64 w-full">
           <BarChart
             data={attendanceData}
             margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
@@ -69,7 +71,7 @@ export function AttendanceChart({ totalRsvps, attending, attended }: AttendanceC
             </Bar>
             <ChartLegend content={<ChartLegendContent nameKey="metric" />} />
           </BarChart>
-        </ChartContainer>
+        </ChartContainer>}
       </CardContent>
     </Card>
   );

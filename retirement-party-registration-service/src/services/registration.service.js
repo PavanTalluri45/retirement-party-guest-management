@@ -103,6 +103,11 @@ export async function getGuestById(id) {
   return formatGuest(guest);
 }
 
+export async function getAllGuests() {
+  const guests = await guestRepository.findAll();
+  return guests.map(formatGuest);
+}
+
 /**
  * Find a guest by their registered phone number.
  *
@@ -130,6 +135,7 @@ function formatGuest(doc) {
   const formatted = {
     id: _id.toString(),
     ...rest,
+    status: rest.status || "REGISTERED",
   };
 
   // Remove null confirmationNumber from non-attending responses

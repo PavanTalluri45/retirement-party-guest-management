@@ -69,6 +69,15 @@ export async function getById(req, res, next) {
   }
 }
 
+export async function getAll(req, res, next) {
+  try {
+    const guests = await registrationService.getAllGuests();
+    return res.status(200).json({ success: true, data: guests });
+  } catch (error) {
+    next(error);
+  }
+}
+
 /**
  * GET /registrations/phone/:phone
  */

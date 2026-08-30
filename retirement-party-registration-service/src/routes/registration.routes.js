@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   register,
+  getAll,
   getByConfirmationNumber,
   getByPhone,
   getById,
@@ -14,6 +15,9 @@ router.get("/health", healthCheck);
 
 /** Register a new guest */
 router.post("/registrations", register);
+
+/** List all registered guests for the admin gateway */
+router.get("/registrations", getAll);
 
 /** Look up an attending guest by 4-digit confirmation number */
 router.get("/registrations/confirmation/:confirmationNumber", getByConfirmationNumber);

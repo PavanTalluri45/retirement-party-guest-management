@@ -10,6 +10,7 @@ async function startServer() {
     console.log(`[Gateway]   1. Auth Service:         ${config.authServiceUrl}`);
     console.log(`[Gateway]   2. Registration Service: ${config.registrationServiceUrl}`);
     console.log(`[Gateway]   3. Verification Service: ${config.verificationServiceUrl}`);
+    console.log(`[Gateway]   4. Analytics Service:    ${config.analyticsServiceUrl}`);
     console.log("[Gateway] ==================================================");
 
     const server = app.listen(config.port, "0.0.0.0", () => {
@@ -19,6 +20,7 @@ async function startServer() {
       console.log(`[Gateway]   - Auth Service Health:       http://localhost:${config.port}/health/auth`);
       console.log(`[Gateway]   - Registration Health:       http://localhost:${config.port}/health/registration`);
       console.log(`[Gateway]   - Verification Health:       http://localhost:${config.port}/verification/health`);
+      console.log(`[Gateway]   - Analytics Health:          http://localhost:${config.port}/analytics/health`);
       console.log("[Gateway] ==================================================");
     });
 

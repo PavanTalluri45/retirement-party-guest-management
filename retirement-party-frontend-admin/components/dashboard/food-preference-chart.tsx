@@ -1,12 +1,7 @@
 "use client";
 
 import { PieChart, Pie, Cell } from "recharts";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import {
   ChartContainer,
   ChartTooltip,
@@ -15,13 +10,19 @@ import {
   ChartLegendContent,
 } from "@/components/ui/chart";
 import { foodChartConfig } from "@/lib/dashboard/chart-config";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface FoodPreferenceChartProps {
   vegCount: number;
   nonVegCount: number;
+  loading?: boolean;
 }
 
-export function FoodPreferenceChart({ vegCount, nonVegCount }: FoodPreferenceChartProps) {
+export function FoodPreferenceChart({
+  vegCount,
+  nonVegCount,
+  loading = false,
+}: FoodPreferenceChartProps) {
   const foodPreferenceData = [
     { food: "veg", value: vegCount },
     { food: "nonveg", value: nonVegCount },
@@ -31,27 +32,27 @@ export function FoodPreferenceChart({ vegCount, nonVegCount }: FoodPreferenceCha
     <Card>
       <CardHeader>
         <CardTitle className="text-base font-semibold text-foreground">
-          Food Preferences (Attending Only)
+          Food Preferences
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <ChartContainer
+        {loading ? <Skeleton className="mx-auto aspect-square h-64 rounded-md" /> : <ChartContainer
           config={foodChartConfig}
           className="mx-auto aspect-square max-h-64"
         >
-          <PieChart>
+          <PieChart margin={{ top: 24, right: 24, bottom: 24, left: 24 }}>
             <ChartTooltip content={<ChartTooltipContent hideLabel />} />
             <Pie
               data={foodPreferenceData}
               cx="50%"
               cy="50%"
               labelLine={false}
-              outerRadius={80}
+              outerRadius={70}
               dataKey="value"
               nameKey="food"
-              label={({ name, percent, value }) =>
+              label={({ percent, value }) =>
                 Number(value ?? 0) > 0
-                  ? `${foodChartConfig[name as keyof typeof foodChartConfig]?.label}: ${value} (${((percent ?? 0) * 100).toFixed(0)}%)`
+                  ? `${((percent ?? 0) * 100).toFixed(0)}%`
                   : null
               }
             >
@@ -60,7 +61,7 @@ export function FoodPreferenceChart({ vegCount, nonVegCount }: FoodPreferenceCha
             </Pie>
             <ChartLegend content={<ChartLegendContent nameKey="food" />} />
           </PieChart>
-        </ChartContainer>
+        </ChartContainer>}
       </CardContent>
     </Card>
   );

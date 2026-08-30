@@ -8,6 +8,7 @@ import healthRoutes from "./routes/health.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import registrationRoutes from "./routes/registration.routes.js";
 import verificationRoutes from "./routes/verification.routes.js";
+import analyticsRoutes from "./routes/analytics.routes.js";
 import crypto from "node:crypto";
 
 const app = express();
@@ -30,7 +31,7 @@ const corsOptions = {
   credentials: true,
   methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Request-ID"],
-  exposedHeaders: ["Server-Timing", "X-Verification-Duration-Ms", "X-Request-ID"],
+  exposedHeaders: ["Server-Timing", "X-Verification-Duration-Ms", "X-Analytics-Duration-Ms", "X-Cache", "X-Request-ID"],
 };
 app.use(cors(corsOptions));
 
@@ -74,6 +75,7 @@ app.use(healthRoutes);
 app.use(authRoutes);
 app.use(registrationRoutes);
 app.use(verificationRoutes);
+app.use(analyticsRoutes);
 
 
 // 8. 404 Route Not Found

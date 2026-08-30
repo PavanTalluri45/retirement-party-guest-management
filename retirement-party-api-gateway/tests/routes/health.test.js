@@ -4,6 +4,7 @@ import app from "../../src/app.js";
 import { authClient } from "../../src/services/auth-client.js";
 import { registrationClient } from "../../src/services/registration-client.js";
 import { verificationClient } from "../../src/services/verification-client.js";
+import { analyticsClient } from "../../src/services/analytics-client.js";
 
 describe("Health Routes Integration Tests (Supertest)", () => {
   beforeEach(() => {
@@ -30,7 +31,7 @@ describe("Health Routes Integration Tests (Supertest)", () => {
     expect(res.body.success).toBe(true);
     expect(res.body.service).toBe("retirement-party-api-gateway");
     expect(res.body.status).toBe("healthy");
-    expect(res.body.services).toEqual(["auth", "registration", "verification"]);
+    expect(res.body.services).toEqual(["auth", "registration", "verification", "analytics"]);
     expect(res.body.timestamp).toBeDefined();
   });
 
@@ -143,6 +144,27 @@ describe("Health Routes Integration Tests (Supertest)", () => {
     });
   });
 
+  it("GET /health/analytics should return 200 when Analytics Service is healthy", async () => {
+    const mockAnalyticsHealthData = {
+      success: true,
+      service: "retirement-party-analytics-service",
+      status: "healthy",
+      dependencies: { mongodb: "connected", redis: "connected" },
+      timestamp: "2026-08-30T00:00:00.000Z",
+    };
+
+    jest.spyOn(analyticsClient, "getHealth").mockResolvedValueOnce({
+      status: 200,
+      data: mockAnalyticsHealthData,
+    });
+
+    const res = await request(app).get("/health/analytics");
+
+    expect(res.status).toBe(200);
+    expect(res.body.gateway).toBe("healthy");
+    expect(res.body.analyticsService).toEqual(mockAnalyticsHealthData);
+  });
+
   it("GET /health/all should return 200 and overall healthy when all services are up", async () => {
     jest.spyOn(authClient, "checkHealth").mockResolvedValueOnce({
       status: 200,
@@ -156,6 +178,10 @@ describe("Health Routes Integration Tests (Supertest)", () => {
       status: 200,
       data: { success: true, service: "retirement-party-verification-service", status: "healthy" },
     });
+    jest.spyOn(analyticsClient, "getHealth").mockResolvedValueOnce({
+      status: 200,
+      data: { success: true, service: "retirement-party-analytics-service", status: "healthy" },
+    });
 
     const res = await request(app).get("/health/all");
 
@@ -165,6 +191,7 @@ describe("Health Routes Integration Tests (Supertest)", () => {
     expect(res.body.services.authService.status).toBe("healthy");
     expect(res.body.services.registrationService.status).toBe("healthy");
     expect(res.body.services.verificationService.status).toBe("healthy");
+    expect(res.body.services.analyticsService.status).toBe("healthy");
   });
 
   it("GET /health/all should return 207 and overall degraded when a downstream service is down", async () => {
@@ -176,6 +203,10 @@ describe("Health Routes Integration Tests (Supertest)", () => {
       new Error("Registration service unreachable")
     );
     jest.spyOn(verificationClient, "getHealth").mockResolvedValueOnce({
+      status: 200,
+      data: { success: true, status: "healthy" },
+    });
+    jest.spyOn(analyticsClient, "getHealth").mockResolvedValueOnce({
       status: 200,
       data: { success: true, status: "healthy" },
     });

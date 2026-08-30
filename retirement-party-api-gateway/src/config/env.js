@@ -18,6 +18,8 @@ export const config = {
   /** Internal URL of the Verification Service — never exposed to the client */
   verificationServiceUrl: process.env.VERIFICATION_SERVICE_URL || "http://localhost:5002",
 
+  /** Internal URL of the Analytics Service — never exposed to the client */
+  analyticsServiceUrl: process.env.ANALYTICS_SERVICE_URL || "http://localhost:5003",
 
   /** Comma-separated allowed CORS origins */
   corsOrigins: process.env.CORS_ORIGINS

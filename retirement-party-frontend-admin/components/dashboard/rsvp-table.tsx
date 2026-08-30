@@ -20,9 +20,10 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { formatDate, formatDateTime } from "@/lib/dashboard/format";
-import { ITEMS_PER_PAGE } from "@/lib/dashboard/mock-data";
+import { ITEMS_PER_PAGE } from "@/lib/dashboard/types";
 import { SortableHead } from "./sortable-table-head";
 import type { RsvpRecord, SortConfig } from "@/lib/dashboard/types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface RsvpTableProps {
   items: RsvpRecord[];
@@ -31,8 +32,8 @@ interface RsvpTableProps {
   totalPages: number;
   sortConfig: SortConfig;
   onSort: (key: SortConfig["key"]) => void;
-  onToggleAttended?: (id: string) => void;
   onPageChange: (page: number) => void;
+  loading?: boolean;
 }
 
 export function RsvpTable({
@@ -42,8 +43,8 @@ export function RsvpTable({
   totalPages,
   sortConfig,
   onSort,
-  onToggleAttended,
   onPageChange,
+  loading = false,
 }: RsvpTableProps) {
   const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
   const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
@@ -66,11 +67,7 @@ export function RsvpTable({
               <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Phone
               </TableHead>
-              <SortableHead label="Family Size" columnKey="familyCount" sortConfig={sortConfig} onSort={onSort} />
               <SortableHead label="Attending" columnKey="isAttending" sortConfig={sortConfig} onSort={onSort} />
-              <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Food Pref
-              </TableHead>
               <SortableHead label="Attended" columnKey="attended" sortConfig={sortConfig} onSort={onSort} />
               <TableHead className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Confirmation #
@@ -79,7 +76,17 @@ export function RsvpTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items.length > 0 ? (
+            {loading ? (
+              Array.from({ length: 8 }, (_, rowIndex) => (
+                <TableRow key={`skeleton-${rowIndex}`}>
+                  {Array.from({ length: 6 }, (_, cellIndex) => (
+                    <TableCell key={cellIndex}>
+                      <Skeleton className="h-4 w-full min-w-20 rounded-md" />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : items.length > 0 ? (
               items.map((person) => (
                 <TableRow key={person.id}>
                   <TableCell>
@@ -95,9 +102,6 @@ export function RsvpTable({
                   <TableCell className="text-sm text-muted-foreground">
                     {person.phoneNumber}
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {person.familyCount}
-                  </TableCell>
                   <TableCell>
                     <Badge
                       variant="outline"
@@ -112,32 +116,19 @@ export function RsvpTable({
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "border font-medium",
-                        person.foodPreference === "veg"
-                          ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                          : "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",
-                      )}
-                    >
-                      {person.foodPreference === "veg" ? "Veg" : "Non-Veg"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
                     <div>
                       <Badge
                         variant="outline"
                         className={cn(
                           "border font-medium",
-                          person.attended
+                          person.attended === "Yes"
                             ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
                             : "border-border bg-muted text-muted-foreground",
                         )}
                       >
-                        {person.attended ? "Yes" : "No"}
+                        {person.attended}
                       </Badge>
-                      {person.attended && person.attendedAt && (
+                      {person.attended === "Yes" && person.attendedAt && (
                         <div className="text-xs text-muted-foreground mt-1">
                           {formatDateTime(person.attendedAt)}
                         </div>
@@ -155,7 +146,7 @@ export function RsvpTable({
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={8}
+                  colSpan={6}
                   className="text-center text-sm text-muted-foreground py-8"
                 >
                   No matching RSVPs found
