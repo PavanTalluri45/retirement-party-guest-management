@@ -1,6 +1,23 @@
 import { adminAuth } from "../config/firebase.js";
 import * as userDb from "../database/user.db.js";
 
+const passwordStrengthError =
+  "Password must be at least 8 characters long, include an uppercase letter, lowercase letter, number, and special character.";
+
+function validateStrongPassword(password) {
+  if (typeof password !== "string") {
+    return false;
+  }
+
+  return (
+    password.length >= 8 &&
+    /\d/.test(password) &&
+    /[a-z]/.test(password) &&
+    /[A-Z]/.test(password) &&
+    /[^A-Za-z0-9]/.test(password)
+  );
+}
+
 /**
  * Format MongoDB user document to safe API response object
  */
@@ -114,6 +131,12 @@ export async function getCurrentUser(firebaseUid) {
  */
 export async function createStaff({ name, email, password }) {
   const normalizedEmail = email.trim().toLowerCase();
+
+  if (!validateStrongPassword(password)) {
+    const error = new Error(passwordStrengthError);
+    error.statusCode = 400;
+    throw error;
+  }
 
   // 1. Verify email is not already registered in MongoDB
   const existingMongoUser = await userDb.findUserByEmail(normalizedEmail);

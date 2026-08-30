@@ -1,15 +1,22 @@
 "use client";
 
-import { useState, type ChangeEvent, type FormEvent } from "react";
+import {
+  useId,
+  useMemo,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
-  UserPlus,
   Eye,
   EyeOff,
   Loader2,
   AlertCircle,
   CheckCircle2,
+  Check,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +36,17 @@ const EMPTY_FORM: StaffMemberFormData = {
   password: "",
 };
 
+const passwordRequirements = [
+  { regex: /.{8,}/, text: "At least 8 characters" },
+  { regex: /\d/, text: "At least 1 number" },
+  { regex: /[a-z]/, text: "At least 1 lowercase letter" },
+  { regex: /[A-Z]/, text: "At least 1 uppercase letter" },
+  { regex: /[^A-Za-z0-9]/, text: "At least 1 special character" },
+];
+
+const validateStrongPassword = (value: string) =>
+  passwordRequirements.every((req) => req.regex.test(value));
+
 export function StaffMemberForm() {
   const router = useRouter();
   const [formData, setFormData] = useState<StaffMemberFormData>(EMPTY_FORM);
@@ -36,6 +54,38 @@ export function StaffMemberForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const passwordId = useId();
+
+  const passwordChecks = useMemo(
+    () =>
+      passwordRequirements.map((req) => ({
+        met: req.regex.test(formData.password),
+        text: req.text,
+      })),
+    [formData.password],
+  );
+
+  const strengthScore = passwordChecks.filter((req) => req.met).length;
+
+  const strengthColor =
+    strengthScore === 0
+      ? "bg-border"
+      : strengthScore <= 1
+        ? "bg-red-500"
+        : strengthScore <= 2
+          ? "bg-orange-500"
+          : strengthScore === 3
+            ? "bg-amber-500"
+            : "bg-emerald-500";
+
+  const strengthText =
+    strengthScore === 0
+      ? "Enter a password"
+      : strengthScore <= 2
+        ? "Weak password"
+        : strengthScore <= 4
+          ? "Medium password"
+          : "Strong password";
 
   const handleChange =
     (field: keyof StaffMemberFormData) =>
@@ -62,8 +112,10 @@ export function StaffMemberForm() {
       return;
     }
 
-    if (password.length < 8) {
-      setErrorMessage("Password must be at least 8 characters long.");
+    if (!validateStrongPassword(password)) {
+      setErrorMessage(
+        "Password must be at least 8 characters long, include an uppercase letter, lowercase letter, number, and special character.",
+      );
       return;
     }
 
@@ -167,14 +219,19 @@ export function StaffMemberForm() {
             <Label htmlFor="password">Password</Label>
             <div className="relative">
               <Input
-                id="password"
+                id={passwordId}
                 type={showPassword ? "text" : "password"}
                 value={formData.password}
                 onChange={handleChange("password")}
-                placeholder="Enter a secure password (min 8 chars)"
+                placeholder="Enter a secure password"
                 disabled={isLoading}
                 required
                 className="pr-10"
+                aria-describedby={
+                  formData.password.length > 0
+                    ? `${passwordId}-strength`
+                    : undefined
+                }
               />
               <button
                 type="button"
@@ -190,6 +247,69 @@ export function StaffMemberForm() {
                 )}
               </button>
             </div>
+
+            {formData.password.length > 0 && (
+              <div className="mt-3 space-y-2 origin-top opacity-0 animate-[fade-in_200ms_ease-out_forwards]">
+                <div
+                  className="h-1.5 w-full overflow-hidden rounded-full bg-border"
+                  role="progressbar"
+                  aria-valuenow={strengthScore}
+                  aria-valuemin={0}
+                  aria-valuemax={5}
+                  aria-label="Password strength"
+                >
+                  <div
+                    className={`h-full ${strengthColor} transition-all duration-500 ease-out`}
+                    style={{ width: `${(strengthScore / 5) * 100}%` }}
+                  />
+                </div>
+
+                <p
+                  id={`${passwordId}-strength`}
+                  className="text-sm font-medium text-foreground"
+                >
+                  {strengthText}. Must contain:
+                </p>
+
+                <ul className="space-y-1.5" aria-label="Password requirements">
+                  {passwordChecks.map((req, index) => (
+                    <li
+                      key={req.text}
+                      className="flex items-center gap-2 opacity-0 animate-[fade-in_180ms_ease-out_forwards]"
+                      style={{ animationDelay: `${index * 30}ms` }}
+                    >
+                      {req.met ? (
+                        <Check
+                          size={16}
+                          className="text-emerald-500"
+                          aria-hidden="true"
+                        />
+                      ) : (
+                        <X
+                          size={16}
+                          className="text-muted-foreground/80"
+                          aria-hidden="true"
+                        />
+                      )}
+                      <span
+                        className={
+                          req.met
+                            ? "text-xs text-emerald-600"
+                            : "text-xs text-muted-foreground"
+                        }
+                      >
+                        {req.text}
+                        <span className="sr-only">
+                          {req.met
+                            ? " - Requirement met"
+                            : " - Requirement not met"}
+                        </span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-3 pt-2">

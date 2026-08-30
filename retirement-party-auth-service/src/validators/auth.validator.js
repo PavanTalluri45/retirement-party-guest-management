@@ -1,5 +1,28 @@
 import { z } from "zod";
 
+const passwordStrengthError =
+  "Password must be at least 8 characters long, include an uppercase letter, lowercase letter, number, and special character.";
+
+export function validateStrongPassword(password) {
+  if (typeof password !== "string") {
+    return false;
+  }
+
+  const hasLength = password.length >= 8;
+  const hasNumber = /\d/.test(password);
+  const hasLowercase = /[a-z]/.test(password);
+  const hasUppercase = /[A-Z]/.test(password);
+  const hasSpecialChar = /[^A-Za-z0-9]/.test(password);
+
+  return (
+    hasLength &&
+    hasNumber &&
+    hasLowercase &&
+    hasUppercase &&
+    hasSpecialChar
+  );
+}
+
 /**
  * Validator schema for Admin registration.
  * Role cannot be provided or manipulated by the client.
@@ -33,8 +56,11 @@ export const createStaffSchema = z
       .toLowerCase(),
     password: z
       .string({ required_error: "Password is required" })
-      .min(8, "Password must be at least 8 characters long")
-      .max(128, "Password cannot exceed 128 characters"),
+      .min(8, passwordStrengthError)
+      .max(128, "Password cannot exceed 128 characters")
+      .refine((value) => validateStrongPassword(value), {
+        message: passwordStrengthError,
+      }),
   })
   .strict({ message: "Unrecognized fields in request body" });
 

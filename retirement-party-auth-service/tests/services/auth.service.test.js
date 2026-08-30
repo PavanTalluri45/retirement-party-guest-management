@@ -266,6 +266,23 @@ describe("Auth Service Unit Tests", () => {
       });
     });
 
+    it("should reject weak passwords that do not meet all strength requirements", async () => {
+      mockCollection.findOne.mockResolvedValueOnce(null);
+      const notFoundErr = new Error("User not found");
+      notFoundErr.code = "auth/user-not-found";
+      jest.spyOn(adminAuth, "getUserByEmail").mockRejectedValueOnce(notFoundErr);
+
+      await expect(
+        createStaff({
+          name: "Weak Password User",
+          email: "weak@example.com",
+          password: "abc",
+        })
+      ).rejects.toThrow(
+        "Password must be at least 8 characters long, include an uppercase letter, lowercase letter, number, and special character."
+      );
+    });
+
     it("should rollback and delete Firebase Staff user if MongoDB insertion fails", async () => {
       mockCollection.findOne.mockResolvedValue(null);
       const notFoundErr = new Error("User not found");

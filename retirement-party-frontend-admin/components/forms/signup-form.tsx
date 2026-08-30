@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, Loader2, AlertCircle, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -24,10 +24,22 @@ import { registerAdminApi } from "@/lib/api";
 import { useAppDispatch } from "@/store/hooks";
 import { setAppUser, clearAuth } from "@/store/slices/authSlice";
 
+const passwordRequirements = [
+  { regex: /.{8,}/, text: "At least 8 characters" },
+  { regex: /\d/, text: "At least 1 number" },
+  { regex: /[a-z]/, text: "At least 1 lowercase letter" },
+  { regex: /[A-Z]/, text: "At least 1 uppercase letter" },
+  { regex: /[^A-Za-z0-9]/, text: "At least 1 special character" },
+];
+
+const validatePasswordStrength = (value: string) =>
+  passwordRequirements.every((req) => req.regex.test(value));
+
 export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
   const router = useRouter();
   const { signUp, logOut } = useAuth();
   const dispatch = useAppDispatch();
+  const passwordId = React.useId();
 
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
@@ -40,6 +52,37 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
   const [isLoading, setIsLoading] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
+  const passwordChecks = React.useMemo(
+    () =>
+      passwordRequirements.map((req) => ({
+        met: req.regex.test(password),
+        text: req.text,
+      })),
+    [password],
+  );
+
+  const strengthScore = passwordChecks.filter((req) => req.met).length;
+
+  const strengthColor =
+    strengthScore === 0
+      ? "bg-border"
+      : strengthScore <= 1
+        ? "bg-red-500"
+        : strengthScore <= 2
+          ? "bg-orange-500"
+          : strengthScore === 3
+            ? "bg-amber-500"
+            : "bg-emerald-500";
+
+  const strengthText =
+    strengthScore === 0
+      ? "Enter a password"
+      : strengthScore <= 2
+        ? "Weak password"
+        : strengthScore <= 4
+          ? "Medium password"
+          : "Strong password";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
@@ -50,8 +93,10 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
       return;
     }
 
-    if (password.length < 8) {
-      setErrorMessage("Password must be at least 8 characters long.");
+    if (!validatePasswordStrength(password)) {
+      setErrorMessage(
+        "Password must be at least 8 characters long, include an uppercase letter, lowercase letter, number, and special character.",
+      );
       return;
     }
 
@@ -73,7 +118,8 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
         await logOut().catch(() => {});
         dispatch(clearAuth());
         setErrorMessage(
-          res.message || "Failed to create application profile. Please try again."
+          res.message ||
+            "Failed to create application profile. Please try again.",
         );
         setIsLoading(false);
         return;
@@ -98,7 +144,8 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
             message = "The provided email address is invalid.";
             break;
           case "auth/weak-password":
-            message = "Password is too weak. Please choose a stronger password.";
+            message =
+              "Password is too weak. Please choose a stronger password.";
             break;
           default:
             if (typeof errObj.message === "string") {
@@ -162,14 +209,17 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
               <FieldLabel htmlFor="password">Password</FieldLabel>
               <div className="relative">
                 <Input
-                  id="password"
-                  placeholder="Enter your password (min 8 chars)"
+                  id={passwordId}
+                  placeholder="Enter your password"
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
                   required
                   className="pr-10"
+                  aria-describedby={
+                    password.length > 0 ? `${passwordId}-strength` : undefined
+                  }
                 />
                 <button
                   type="button"
@@ -185,6 +235,72 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
                   )}
                 </button>
               </div>
+
+              {password.length > 0 && (
+                <div className="mt-3 space-y-2 origin-top opacity-0 animate-[fade-in_200ms_ease-out_forwards]">
+                  <div
+                    className="h-1.5 w-full overflow-hidden rounded-full bg-border"
+                    role="progressbar"
+                    aria-valuenow={strengthScore}
+                    aria-valuemin={0}
+                    aria-valuemax={5}
+                    aria-label="Password strength"
+                  >
+                    <div
+                      className={`h-full ${strengthColor} transition-all duration-500 ease-out`}
+                      style={{ width: `${(strengthScore / 5) * 100}%` }}
+                    />
+                  </div>
+
+                  <p
+                    id={`${passwordId}-strength`}
+                    className="text-sm font-medium text-foreground"
+                  >
+                    {strengthText}. Must contain:
+                  </p>
+
+                  <ul
+                    className="space-y-1.5"
+                    aria-label="Password requirements"
+                  >
+                    {passwordChecks.map((req, index) => (
+                      <li
+                        key={req.text}
+                        className="flex items-center gap-2 opacity-0 animate-[fade-in_180ms_ease-out_forwards]"
+                        style={{ animationDelay: `${index * 30}ms` }}
+                      >
+                        {req.met ? (
+                          <Check
+                            size={16}
+                            className="text-emerald-500"
+                            aria-hidden="true"
+                          />
+                        ) : (
+                          <X
+                            size={16}
+                            className="text-muted-foreground/80"
+                            aria-hidden="true"
+                          />
+                        )}
+                        <span
+                          className={
+                            req.met
+                              ? "text-xs text-emerald-600"
+                              : "text-xs text-muted-foreground"
+                          }
+                        >
+                          {req.text}
+                          <span className="sr-only">
+                            {req.met
+                              ? " - Requirement met"
+                              : " - Requirement not met"}
+                          </span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </Field>
             <Field>
               <FieldLabel htmlFor="confirm-password">
