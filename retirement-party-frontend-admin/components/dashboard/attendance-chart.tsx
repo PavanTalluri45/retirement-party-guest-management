@@ -25,6 +25,10 @@ interface AttendanceChartProps {
 }
 
 export function AttendanceChart({ totalRsvps, attending, attended, loading = false }: AttendanceChartProps) {
+  if (loading) {
+    return <Skeleton className="h-[360px] w-full rounded-xl" />;
+  }
+
   const attendanceData = [
     { metric: "total", value: totalRsvps },
     { metric: "attending", value: attending },
@@ -39,7 +43,7 @@ export function AttendanceChart({ totalRsvps, attending, attended, loading = fal
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {loading ? <Skeleton className="h-64 w-full rounded-md" /> : <ChartContainer config={attendanceChartConfig} className="h-64 w-full">
+        <ChartContainer config={attendanceChartConfig} className="h-64 w-full">
           <BarChart
             data={attendanceData}
             margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
@@ -71,7 +75,7 @@ export function AttendanceChart({ totalRsvps, attending, attended, loading = fal
             </Bar>
             <ChartLegend content={<ChartLegendContent nameKey="metric" />} />
           </BarChart>
-        </ChartContainer>}
+        </ChartContainer>
       </CardContent>
     </Card>
   );

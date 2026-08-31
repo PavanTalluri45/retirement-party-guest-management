@@ -83,6 +83,17 @@ describe("RegistrationSchema", () => {
       const result = RegistrationSchema.safeParse(validNotAttending);
       expect(result.success).toBe(true);
     });
+
+    it("normalizes formatted phone numbers before validation", () => {
+      const result = RegistrationSchema.safeParse({
+        name: "Sita Devi",
+        phone: "(987) 654-3210",
+        attending: false,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data.phone).toBe("9876543210");
+    });
   });
 
   // --- Phone validation ---

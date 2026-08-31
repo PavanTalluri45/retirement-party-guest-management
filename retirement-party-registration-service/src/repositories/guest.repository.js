@@ -40,8 +40,13 @@ export async function insertGuest(guestData) {
   const db = getDb();
   const col = db.collection(COLLECTION);
 
+  const normalizedPhone = typeof guestData?.phone === "string"
+    ? guestData.phone.trim().replace(/\D/g, "")
+    : guestData?.phone;
+
   const doc = {
     ...guestData,
+    phone: normalizedPhone,
     registeredAt: new Date(),
   };
 
@@ -56,7 +61,8 @@ export async function insertGuest(guestData) {
  */
 export async function findByPhone(phone) {
   const db = getDb();
-  return db.collection(COLLECTION).findOne({ phone });
+  const normalizedPhone = typeof phone === "string" ? phone.trim().replace(/\D/g, "") : phone;
+  return db.collection(COLLECTION).findOne({ phone: normalizedPhone });
 }
 
 /**

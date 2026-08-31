@@ -1,0 +1,33 @@
+{
+  "name": "retirement-party-websocket-service",
+  "version": "1.0.0",
+  "description": "Real-time WebSocket notification service for the Retirement Party Guest Management System",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "firebase-admin": "^14.3.0",
+    "helmet": "^8.3.0",
+    "socket.io": "^4.8.3",
+    "uuid": "^11.1.0",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.14",
+    "socket.io-client": "^4.8.3",
+    "supertest": "^7.2.2"
+  }
+}

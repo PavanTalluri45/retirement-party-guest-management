@@ -13,7 +13,15 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppSelector } from "@/store/hooks";
 
-export function DashboardHeader() {
+interface DashboardHeaderProps {
+  isConnected?: boolean;
+  isReconnecting?: boolean;
+}
+
+export function DashboardHeader({
+  isConnected,
+  isReconnecting,
+}: DashboardHeaderProps = {}) {
   const router = useRouter();
   const { logOut } = useAuth();
   const { appUser } = useAppSelector((state) => state.auth);
@@ -35,9 +43,26 @@ export function DashboardHeader() {
   return (
     <div className="flex w-full flex-row items-start justify-between gap-4 sm:items-center">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
-          Retirement Party Admin Dashboard
-        </h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
+            Retirement Party Admin Dashboard
+          </h1>
+
+          {/* Real-time connection badge */}
+          {isConnected && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-500 border border-emerald-500/20">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Live
+            </span>
+          )}
+
+          {isReconnecting && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-500 border border-amber-500/20">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+              Reconnecting...
+            </span>
+          )}
+        </div>
 
         <p className="mt-1 text-sm text-muted-foreground">
           Overview of RSVPs, attendance, and check-in status.

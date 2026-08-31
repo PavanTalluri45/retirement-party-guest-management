@@ -4,6 +4,17 @@ const GUESTS_COLLECTION = "guests";
 const CHECKINS_COLLECTION = "checkins";
 const USERS_COLLECTION = "users";
 
+function normalizeMealPreference(value) {
+  if (value === null || value === undefined) return null;
+
+  const normalized = String(value).trim().toUpperCase().replace(/[\s-]+/g, "_");
+
+  if (["VEG", "VEGETARIAN"].includes(normalized)) return "VEG";
+  if (["NON_VEG", "NONVEG", "NON_VEGETARIAN", "NONVEGETARIAN"].includes(normalized)) return "NON_VEG";
+
+  return normalized;
+}
+
 /**
  * Ensures optimal MongoDB performance indexes for analytics aggregations.
  * Idempotent — safe to run on every startup.
@@ -82,7 +93,7 @@ export async function getRegistrationStats() {
 export async function getAttendanceSummary() {
   const db = getDb();
 
-  const [[expectedResult], totalAttended] = await Promise.all([
+  const [[expectedResult], [attendedResult]] = await Promise.all([
     db
       .collection(GUESTS_COLLECTION)
       .aggregate([
@@ -95,10 +106,22 @@ export async function getAttendanceSummary() {
         },
       ])
       .toArray(),
-    db.collection(CHECKINS_COLLECTION).countDocuments({ result: "SUCCESS" }),
+    db
+      .collection(CHECKINS_COLLECTION)
+      .aggregate([
+        { $match: { result: "SUCCESS" } },
+        {
+          $group: {
+            _id: null,
+            totalAttended: { $sum: { $ifNull: ["$familyCount", 1] } },
+          },
+        },
+      ])
+      .toArray(),
   ]);
 
   const expectedAttendees = expectedResult?.expectedAttendees || 0;
+  const totalAttended = attendedResult?.totalAttended || 0;
   const remaining = Math.max(expectedAttendees - totalAttended, 0);
   const attendancePercentage =
     expectedAttendees > 0
@@ -128,8 +151,36 @@ export async function getMealStats() {
         $facet: {
           primaryMeals: [
             {
+              $project: {
+                normalizedMeal: {
+                  $let: {
+                    vars: {
+                      meal: { $toUpper: { $ifNull: ["$mealPreference", ""] } },
+                    },
+                    in: {
+                      $switch: {
+                        branches: [
+                          { case: { $in: ["$$meal", ["VEG", "VEGETARIAN"]] }, then: "VEG" },
+                          {
+                            case: {
+                              $in: ["$$meal", ["NON_VEG", "NONVEG", "NON_VEGETARIAN", "NONVEGETARIAN"]],
+                            },
+                            then: "NON_VEG",
+                          },
+                        ],
+                        default: "$$meal",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            {
+              $match: { normalizedMeal: { $ne: "" } },
+            },
+            {
               $group: {
-                _id: { $toUpper: "$mealPreference" },
+                _id: "$normalizedMeal",
                 count: { $sum: 1 },
               },
             },
@@ -137,8 +188,38 @@ export async function getMealStats() {
           familyMeals: [
             { $unwind: { path: "$familyMembers", preserveNullAndEmptyArrays: false } },
             {
+              $project: {
+                normalizedMeal: {
+                  $let: {
+                    vars: {
+                      meal: {
+                        $toUpper: { $ifNull: ["$familyMembers.mealPreference", ""] },
+                      },
+                    },
+                    in: {
+                      $switch: {
+                        branches: [
+                          { case: { $in: ["$$meal", ["VEG", "VEGETARIAN"]] }, then: "VEG" },
+                          {
+                            case: {
+                              $in: ["$$meal", ["NON_VEG", "NONVEG", "NON_VEGETARIAN", "NONVEGETARIAN"]],
+                            },
+                            then: "NON_VEG",
+                          },
+                        ],
+                        default: "$$meal",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            {
+              $match: { normalizedMeal: { $ne: "" } },
+            },
+            {
               $group: {
-                _id: { $toUpper: "$familyMembers.mealPreference" },
+                _id: "$normalizedMeal",
                 count: { $sum: 1 },
               },
             },
@@ -176,17 +257,36 @@ export async function getCheckinStats() {
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
 
-  const [total, today] = await Promise.all([
-    db.collection(CHECKINS_COLLECTION).countDocuments({ result: "SUCCESS" }),
-    db.collection(CHECKINS_COLLECTION).countDocuments({
-      result: "SUCCESS",
-      checkedInAt: { $gte: startOfDay },
-    }),
+  const [totalResult, todayResult] = await Promise.all([
+    db
+      .collection(CHECKINS_COLLECTION)
+      .aggregate([
+        { $match: { result: "SUCCESS" } },
+        {
+          $group: {
+            _id: null,
+            totalAttendees: { $sum: { $ifNull: ["$familyCount", 1] } },
+          },
+        },
+      ])
+      .toArray(),
+    db
+      .collection(CHECKINS_COLLECTION)
+      .aggregate([
+        { $match: { result: "SUCCESS", checkedInAt: { $gte: startOfDay } } },
+        {
+          $group: {
+            _id: null,
+            todayAttendees: { $sum: { $ifNull: ["$familyCount", 1] } },
+          },
+        },
+      ])
+      .toArray(),
   ]);
 
   return {
-    total,
-    today,
+    total: totalResult?.[0]?.totalAttendees || 0,
+    today: todayResult?.[0]?.todayAttendees || 0,
   };
 }
 
@@ -229,7 +329,7 @@ export async function getCheckinTrend({ from, to, granularity = "hour" } = {}) {
             date: "$checkedInAt",
           },
         },
-        count: { $sum: 1 },
+        count: { $sum: { $ifNull: ["$familyCount", 1] } },
       },
     },
     { $sort: { _id: 1 } },
@@ -262,7 +362,7 @@ export async function getStaffCheckinStats() {
     {
       $group: {
         _id: "$checkedInBy",
-        checkIns: { $sum: 1 },
+        checkIns: { $sum: { $ifNull: ["$familyCount", 1] } },
         lastCheckedInName: { $last: "$checkedInByName" },
         lastCheckedInEmail: { $last: "$checkedInByEmail" },
       },

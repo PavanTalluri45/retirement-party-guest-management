@@ -9,6 +9,7 @@ import { RsvpFilters } from "@/components/dashboard/rsvp-filters";
 import { RsvpTable } from "@/components/dashboard/rsvp-table";
 import { ProtectedRoute } from "@/components/auth/protected-route";
 import { useAnalytics } from "@/hooks/use-analytics";
+import { useWebSocket } from "@/hooks/use-websocket";
 import { fetchRegistrationsApi } from "@/lib/api";
 import type {
   RsvpRecord,
@@ -48,6 +49,23 @@ export default function DashboardPage() {
       setRsvpLoading(false);
     }
   }, []);
+
+  // Real-time WebSocket connection
+  // When a check-in or registration happens, immediately re-fetch authoritative data via REST
+  const { isConnected, isReconnecting } = useWebSocket({
+    onCheckinCompleted: useCallback(() => {
+      void loadRsvps();
+      void refreshAnalytics();
+    }, [loadRsvps, refreshAnalytics]),
+    onGuestRegistered: useCallback(() => {
+      void loadRsvps();
+      void refreshAnalytics();
+    }, [loadRsvps, refreshAnalytics]),
+    onReconnect: useCallback(() => {
+      void loadRsvps();
+      void refreshAnalytics();
+    }, [loadRsvps, refreshAnalytics]),
+  });
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -123,7 +141,10 @@ export default function DashboardPage() {
       <div className="min-h-screen bg-background p-4 md:p-8">
         <div className="max-w-7xl mx-auto space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <DashboardHeader />
+            <DashboardHeader
+              isConnected={isConnected}
+              isReconnecting={isReconnecting}
+            />
           </div>
 
           {analyticsError && (

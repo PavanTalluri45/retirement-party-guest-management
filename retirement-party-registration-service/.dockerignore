@@ -1,8 +1,0 @@
-node_modules
-npm-debug.log
-coverage
-.env
-.env.*
-tests
-jest.config.js
-*.test.js

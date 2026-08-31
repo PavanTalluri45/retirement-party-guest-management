@@ -22,6 +22,10 @@ export function RsvpFilters({
   onAttendingFilterChange,
   loading = false,
 }: RsvpFiltersProps) {
+  if (loading) {
+    return <Skeleton className="h-[104px] w-full rounded-xl" />;
+  }
+
   return (
     <Card>
       <CardContent className="pt-6">
@@ -33,7 +37,7 @@ export function RsvpFilters({
             >
               Attending
             </label>
-            {loading ? <Skeleton className="h-10 w-full rounded-md" /> : <Select
+            <Select
               value={attendingFilter}
               onValueChange={(value) => {
                 if (value === "all" || value === "yes" || value === "no") {
@@ -49,7 +53,7 @@ export function RsvpFilters({
                 <SelectItem value="yes">Attending</SelectItem>
                 <SelectItem value="no">Not Attending</SelectItem>
               </SelectContent>
-            </Select>}
+            </Select>
           </div>
         </div>
       </CardContent>

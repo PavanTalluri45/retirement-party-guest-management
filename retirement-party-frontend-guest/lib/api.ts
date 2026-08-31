@@ -1,7 +1,11 @@
 import type { RSVPFormValues, RSVPData, Attending, MealPreference } from "@/types/rsvp";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+  process.env.NEXT_PUBLIC_API_URL;
+
+export function sanitizePhoneNumber(value: string): string {
+  return value.replace(/\D/g, "").slice(0, 10);
+}
 
 export class ApiError extends Error {
   statusCode: number;
@@ -43,11 +47,12 @@ export async function submitRegistration(
   formValues: RSVPFormValues
 ): Promise<RSVPData> {
   const isAttending = formValues.attending === "Yes";
+  const cleanPhoneNumber = sanitizePhoneNumber(formValues.phoneNumber);
 
   // Build payload according to backend validation schema
   const payload: Record<string, unknown> = {
     name: formValues.fullName.trim(),
-    phone: formValues.phoneNumber.trim(),
+    phone: cleanPhoneNumber,
     attending: isAttending,
   };
 

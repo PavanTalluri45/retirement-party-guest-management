@@ -46,6 +46,10 @@ export function RsvpTable({
   onPageChange,
   loading = false,
 }: RsvpTableProps) {
+  if (loading) {
+    return <Skeleton className="h-[600px] w-full rounded-xl" />;
+  }
+
   const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
   const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
 
@@ -76,17 +80,7 @@ export function RsvpTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading ? (
-              Array.from({ length: 8 }, (_, rowIndex) => (
-                <TableRow key={`skeleton-${rowIndex}`}>
-                  {Array.from({ length: 6 }, (_, cellIndex) => (
-                    <TableCell key={cellIndex}>
-                      <Skeleton className="h-4 w-full min-w-20 rounded-md" />
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : items.length > 0 ? (
+            {items.length > 0 ? (
               items.map((person) => (
                 <TableRow key={person.id}>
                   <TableCell>

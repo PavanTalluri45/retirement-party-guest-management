@@ -66,11 +66,13 @@ describe("Analytics Repository", () => {
     expect(result).toEqual({ total: 50, attending: 40, notAttending: 10 });
   });
 
-  it("getAttendanceSummary should calculate expected and attended counts", async () => {
+  it("getAttendanceSummary should calculate expected and attended counts as people, not check-in documents", async () => {
     mockGuestsCol.aggregate.mockReturnValueOnce({
       toArray: jest.fn().mockResolvedValue([{ expectedAttendees: 80 }]),
     });
-    mockCheckinsCol.countDocuments.mockResolvedValueOnce(60);
+    mockCheckinsCol.aggregate.mockReturnValueOnce({
+      toArray: jest.fn().mockResolvedValue([{ totalAttended: 60 }]),
+    });
 
     const result = await analyticsRepository.getAttendanceSummary();
     expect(result.expectedAttendees).toBe(80);
@@ -79,7 +81,7 @@ describe("Analytics Repository", () => {
     expect(result.attendancePercentage).toBe(75);
   });
 
-  it("getMealStats should count vegetarian and nonVegetarian meals", async () => {
+  it("getMealStats should count vegetarian and nonVegetarian meals across primary and family members", async () => {
     mockGuestsCol.aggregate.mockReturnValueOnce({
       toArray: jest.fn().mockResolvedValue([
         {
@@ -93,10 +95,14 @@ describe("Analytics Repository", () => {
     expect(result).toEqual({ vegetarian: 25, nonVegetarian: 15 });
   });
 
-  it("getCheckinStats should count total and today's check-ins", async () => {
-    mockCheckinsCol.countDocuments
-      .mockResolvedValueOnce(100) // total
-      .mockResolvedValueOnce(35); // today
+  it("getCheckinStats should sum familyCount for total and today check-ins", async () => {
+    mockCheckinsCol.aggregate
+      .mockReturnValueOnce({
+        toArray: jest.fn().mockResolvedValue([{ totalAttendees: 100 }]),
+      })
+      .mockReturnValueOnce({
+        toArray: jest.fn().mockResolvedValue([{ todayAttendees: 35 }]),
+      });
 
     const result = await analyticsRepository.getCheckinStats();
     expect(result).toEqual({ total: 100, today: 35 });

@@ -20,5 +20,11 @@ export const config = {
 
   /** Database name */
   dbName: process.env.DB_NAME || "retirement_party",
+
+  /** WebSocket Service URL and Internal Token */
+  websocketServiceUrl:
+    process.env.WEBSOCKET_SERVICE_URL || "http://localhost:4001",
+  internalServiceToken:
+    process.env.INTERNAL_SERVICE_TOKEN || "",
 };
 

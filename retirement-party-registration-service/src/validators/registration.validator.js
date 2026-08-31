@@ -32,7 +32,8 @@ export const RegistrationSchema = z
 
     phone: z
       .string({ required_error: "Phone number is required." })
-      .regex(/^[0-9]{10}$/, "Phone number must be exactly 10 digits."),
+      .transform((value) => value.trim().replace(/\D/g, ""))
+      .pipe(z.string().regex(/^[0-9]{10}$/, "Phone number must be exactly 10 digits.")),
 
     attending: z.boolean({ required_error: "Attending field is required." }),
 

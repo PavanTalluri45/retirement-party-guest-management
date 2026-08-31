@@ -10,6 +10,7 @@ import {
   HistoryQuerySchema,
 } from "../validators/verification.validator.js";
 import { formatServerTiming } from "../utils/latency.js";
+import { notifyCheckinCompleted } from "../clients/websocket-client.js";
 
 /**
  * POST /verification/confirmation
@@ -126,6 +127,16 @@ export async function checkIn(req, res, next) {
     if (result.meta?.durationMs) {
       res.setHeader("X-CheckIn-Duration-Ms", String(result.meta.durationMs));
     }
+
+    // Asynchronously notify WebSocket Service (fire-and-forget; failure never affects response)
+    notifyCheckinCompleted({
+      guestId: result.guest?._id?.toString() || result.checkin?.guestId,
+      confirmationNumber: result.guest?.confirmationNumber,
+      checkedInAt: result.checkin?.checkedInAt,
+      checkedInBy: result.checkin?.checkedInBy || staffId,
+      verificationMethod,
+      requestId: req.requestId,
+    }).catch(() => {});
 
     return res.status(200).json({
       success: true,

@@ -2,6 +2,10 @@ import * as guestRepository from "../repositories/guest.repository.js";
 import { generateUniqueConfirmationNumber } from "../utils/confirmation-number.js";
 import { RegistrationSchema } from "../validators/registration.validator.js";
 
+function normalizePhone(phone) {
+  return typeof phone === "string" ? phone.trim().replace(/\D/g, "") : phone;
+}
+
 /**
  * Register a new guest.
  * - Validates input with Zod
@@ -23,7 +27,8 @@ export async function registerGuest(rawBody) {
     throw err;
   }
 
-  const { name, phone, attending, familyCount, mealPreference, familyMembers } = parsed.data;
+  const { name, attending, familyCount, mealPreference, familyMembers } = parsed.data;
+  const phone = normalizePhone(parsed.data.phone);
 
   // 2. Check duplicate phone
   const existing = await guestRepository.findByPhone(phone);
@@ -51,6 +56,10 @@ export async function registerGuest(rawBody) {
       confirmationNumber,
     };
   } else {
+    // NOTE: confirmationNumber is intentionally omitted (not set to null) for non-attending guests.
+    // MongoDB's sparse unique index on confirmationNumber only skips documents where the field
+    // is completely absent. Storing null would cause a duplicate key error (11000) when a
+    // second guest declines, since null is treated as a real (duplicate) value by the index.
     guestDoc = {
       name,
       phone,
@@ -58,7 +67,6 @@ export async function registerGuest(rawBody) {
       familyCount: 0,
       mealPreference: null,
       familyMembers: [],
-      confirmationNumber: null,
     };
   }
 

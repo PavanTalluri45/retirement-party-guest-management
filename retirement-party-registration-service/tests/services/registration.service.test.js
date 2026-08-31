@@ -91,6 +91,32 @@ describe("registrationService.registerGuest", () => {
     expect(generateUniqueConfirmationNumber).not.toHaveBeenCalled();
   });
 
+  it("normalizes a formatted non-attending phone before inserting", async () => {
+    guestRepository.findByPhone.mockResolvedValue(null);
+    guestRepository.insertGuest.mockResolvedValue({
+      _id: makeObjectId(),
+      name: "Sita Devi",
+      phone: "9876543210",
+      attending: false,
+      familyCount: 0,
+      mealPreference: null,
+      familyMembers: [],
+      confirmationNumber: null,
+      registeredAt: new Date(),
+    });
+
+    const result = await registerGuest({
+      name: "Sita Devi",
+      phone: "(987) 654-3210",
+      attending: false,
+    });
+
+    expect(result.phone).toBe("9876543210");
+    expect(guestRepository.insertGuest).toHaveBeenCalledWith(
+      expect.objectContaining({ phone: "9876543210", attending: false })
+    );
+  });
+
   it("throws DUPLICATE_PHONE when phone already exists", async () => {
     guestRepository.findByPhone.mockResolvedValue({ phone: "9876543210" });
 

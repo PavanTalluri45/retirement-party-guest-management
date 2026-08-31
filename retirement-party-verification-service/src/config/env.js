@@ -61,4 +61,10 @@ export const config = {
       ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n")
       : "",
   },
+
+  /** WebSocket Service URL and Internal Token */
+  websocketServiceUrl:
+    process.env.WEBSOCKET_SERVICE_URL || "http://localhost:4001",
+  internalServiceToken:
+    process.env.INTERNAL_SERVICE_TOKEN || "",
 };

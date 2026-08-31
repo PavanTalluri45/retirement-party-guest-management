@@ -3,6 +3,7 @@
 import type { FieldErrors, UseFormRegister } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { sanitizePhoneNumber } from "@/lib/api";
 import type { RSVPFormValues } from "@/types/rsvp";
 
 interface PersonalDetailsSectionProps {
@@ -14,6 +15,15 @@ export function PersonalDetailsSection({
   register,
   errors,
 }: PersonalDetailsSectionProps) {
+  const phoneField = register("phoneNumber", {
+    required: "Phone number is required",
+    pattern: {
+      value: /^[0-9]{10}$/,
+      message: "Enter a valid 10-digit phone number",
+    },
+    setValueAs: (value: string) => sanitizePhoneNumber(value),
+  });
+
   return (
     <section>
       <div className="mb-6">
@@ -65,13 +75,12 @@ export function PersonalDetailsSection({
             autoComplete="tel"
             placeholder="Enter your 10-digit phone number"
             className="h-11 bg-white"
-            {...register("phoneNumber", {
-              required: "Phone number is required",
-              pattern: {
-                value: /^[0-9]{10}$/,
-                message: "Enter a valid 10-digit phone number",
-              },
-            })}
+            {...phoneField}
+            onChange={(event) => {
+              const cleaned = sanitizePhoneNumber(event.target.value);
+              event.target.value = cleaned;
+              phoneField.onChange(event);
+            }}
           />
 
           {errors.phoneNumber && (
