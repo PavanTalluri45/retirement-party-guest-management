@@ -30,4 +30,8 @@ export const attendanceChartConfig = {
     label: "Actually Attended",
     color: "var(--chart-5)",
   },
+  notAttended: {
+    label: "Not Attended",
+    color: "var(--chart-3)",
+  },
 } satisfies ChartConfig;

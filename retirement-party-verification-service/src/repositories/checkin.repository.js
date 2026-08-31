@@ -4,6 +4,31 @@ import { getDb } from "../config/database.js";
 const GUESTS_COLLECTION = "guests";
 const CHECKINS_COLLECTION = "checkins";
 
+function isIndexConflictError(error) {
+  if (!error) return false;
+
+  return (
+    error.code === 86 ||
+    error.codeName === "IndexKeySpecsConflict" ||
+    /same name as the requested index/i.test(error.message || "")
+  );
+}
+
+async function createIndexIfMissing(collection, indexSpec, options = {}) {
+  try {
+    await collection.createIndex(indexSpec, options);
+  } catch (error) {
+    if (isIndexConflictError(error)) {
+      console.warn(
+        `[MongoDB] Skipping existing index ${options.name || JSON.stringify(indexSpec)} because it already exists with a different definition.`
+      );
+      return;
+    }
+
+    throw error;
+  }
+}
+
 /**
  * Ensures all required performance indexes exist on startup.
  * Idempotent.
@@ -14,30 +39,35 @@ export async function ensureIndexes() {
   const guestsCol = db.collection(GUESTS_COLLECTION);
 
   // 1. Unique index on checkins.guestId to prevent duplicate checkin records
-  await checkinsCol.createIndex(
+  await createIndexIfMissing(
+    checkinsCol,
     { guestId: 1 },
     { unique: true, name: "idx_checkins_guestId_unique" }
   );
 
   // 2. Compound index for staff history query: checkedInBy + checkedInAt DESC
-  await checkinsCol.createIndex(
+  await createIndexIfMissing(
+    checkinsCol,
     { checkedInBy: 1, checkedInAt: -1 },
     { name: "idx_checkins_staff_date" }
   );
 
   // 3. Index on checkedInAt for event-wide analytics/sorting
-  await checkinsCol.createIndex(
+  await createIndexIfMissing(
+    checkinsCol,
     { checkedInAt: -1 },
     { name: "idx_checkins_date" }
   );
 
   // 4. Ensure guests collection has phone and confirmation indexes
-  await guestsCol.createIndex(
+  await createIndexIfMissing(
+    guestsCol,
     { phone: 1 },
     { unique: true, name: "idx_guests_phone_unique" }
   );
 
-  await guestsCol.createIndex(
+  await createIndexIfMissing(
+    guestsCol,
     { confirmationNumber: 1 },
     { unique: true, sparse: true, name: "idx_guests_confirmationNumber_unique" }
   );

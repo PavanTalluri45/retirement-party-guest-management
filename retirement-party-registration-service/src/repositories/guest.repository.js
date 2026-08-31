@@ -17,15 +17,34 @@ export async function ensureIndexes() {
     { unique: true, name: "idx_guests_phone_unique" }
   );
 
-  // Sparse unique index on confirmationNumber (only for documents that have it)
-  await col.createIndex(
-    { confirmationNumber: 1 },
-    {
-      unique: true,
-      sparse: true,
-      name: "idx_guests_confirmationNumber_unique",
+  // Partial unique index on confirmationNumber (only index string values)
+  // This guarantees non-attending guests (with missing or null confirmationNumber)
+  // never trigger index collisions.
+  try {
+    await col.createIndex(
+      { confirmationNumber: 1 },
+      {
+        unique: true,
+        partialFilterExpression: { confirmationNumber: { $type: "string" } },
+        name: "idx_guests_confirmationNumber_unique",
+      }
+    );
+  } catch (err) {
+    // If index exists with old options (e.g. sparse without partialFilter), drop and recreate
+    if (err.code === 85 || err.codeName === "IndexOptionsConflict") {
+      await col.dropIndex("idx_guests_confirmationNumber_unique");
+      await col.createIndex(
+        { confirmationNumber: 1 },
+        {
+          unique: true,
+          partialFilterExpression: { confirmationNumber: { $type: "string" } },
+          name: "idx_guests_confirmationNumber_unique",
+        }
+      );
+    } else {
+      throw err;
     }
-  );
+  }
 
   // Index on attendingStatus + registeredAt for reporting queries
   await col.createIndex({ attending: 1, registeredAt: -1 }, { name: "idx_guests_attending_date" });
@@ -49,6 +68,10 @@ export async function insertGuest(guestData) {
     phone: normalizedPhone,
     registeredAt: new Date(),
   };
+
+  if (doc.confirmationNumber == null) {
+    delete doc.confirmationNumber;
+  }
 
   const result = await col.insertOne(doc);
   return { ...doc, _id: result.insertedId };

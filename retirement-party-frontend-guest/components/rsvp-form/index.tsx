@@ -33,7 +33,7 @@ export function RSVPForm() {
           initial={{ x: 70, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 0.7, delay: 0.1, ease: "easeOut" }}
-          className="h-[58vh] overflow-y-auto overscroll-contain bg-white lg:h-screen"
+          className="h-screen overflow-y-auto overscroll-contain bg-white"
         >
           <div className="mx-auto w-full max-w-2xl px-5 py-8 sm:px-8 sm:py-10 lg:px-12 lg:py-12 xl:px-16">
             <form onSubmit={onSubmit} className="space-y-8">

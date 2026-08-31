@@ -21,10 +21,17 @@ interface AttendanceChartProps {
   totalRsvps: number;
   attending: number;
   attended: number;
+  notAttended: number;
   loading?: boolean;
 }
 
-export function AttendanceChart({ totalRsvps, attending, attended, loading = false }: AttendanceChartProps) {
+export function AttendanceChart({
+  totalRsvps,
+  attending,
+  attended,
+  notAttended,
+  loading = false,
+}: AttendanceChartProps) {
   if (loading) {
     return <Skeleton className="h-[360px] w-full rounded-xl" />;
   }
@@ -33,6 +40,7 @@ export function AttendanceChart({ totalRsvps, attending, attended, loading = fal
     { metric: "total", value: totalRsvps },
     { metric: "attending", value: attending },
     { metric: "attended", value: attended },
+    { metric: "notAttended", value: notAttended },
   ];
 
   return (
@@ -72,6 +80,7 @@ export function AttendanceChart({ totalRsvps, attending, attended, loading = fal
               <Cell fill="var(--color-total)" />
               <Cell fill="var(--color-attending)" />
               <Cell fill="var(--color-attended)" />
+              <Cell fill="var(--color-notAttended)" />
             </Bar>
             <ChartLegend content={<ChartLegendContent nameKey="metric" />} />
           </BarChart>

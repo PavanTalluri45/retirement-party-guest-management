@@ -23,6 +23,10 @@ export function FoodPreferenceChart({
   nonVegCount,
   loading = false,
 }: FoodPreferenceChartProps) {
+  if (loading) {
+    return <Skeleton className="h-80 w-full rounded-xl" />;
+  }
+
   const foodPreferenceData = [
     { food: "veg", value: vegCount },
     { food: "nonveg", value: nonVegCount },
@@ -36,7 +40,7 @@ export function FoodPreferenceChart({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {loading ? <Skeleton className="mx-auto aspect-square h-64 rounded-md" /> : <ChartContainer
+        <ChartContainer
           config={foodChartConfig}
           className="mx-auto aspect-square max-h-64"
         >
@@ -61,7 +65,7 @@ export function FoodPreferenceChart({
             </Pie>
             <ChartLegend content={<ChartLegendContent nameKey="food" />} />
           </PieChart>
-        </ChartContainer>}
+        </ChartContainer>
       </CardContent>
     </Card>
   );

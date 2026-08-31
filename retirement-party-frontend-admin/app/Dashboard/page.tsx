@@ -85,6 +85,7 @@ export default function DashboardPage() {
   const totalRsvps = summary?.registrations?.total ?? 0;
   const expectedAttendees = summary?.attendance?.expectedAttendees ?? 0;
   const attendedCount = summary?.attendance?.totalAttended ?? 0;
+  const notAttendedCount = summary?.registrations?.notAttending ?? 0;
   const attendanceRate = summary?.attendance?.attendancePercentage ?? 0;
 
   // Sorting for local RSVP Table
@@ -191,6 +192,7 @@ export default function DashboardPage() {
               totalRsvps={totalRsvps}
               attending={expectedAttendees}
               attended={attendedCount}
+              notAttended={notAttendedCount}
               loading={analyticsLoading}
             />
           </div>

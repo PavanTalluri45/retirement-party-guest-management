@@ -51,7 +51,11 @@ describe("guest.repository", () => {
       );
       expect(mockCollection.createIndex).toHaveBeenCalledWith(
         { confirmationNumber: 1 },
-        { unique: true, sparse: true, name: "idx_guests_confirmationNumber_unique" }
+        {
+          unique: true,
+          partialFilterExpression: { confirmationNumber: { $type: "string" } },
+          name: "idx_guests_confirmationNumber_unique",
+        }
       );
     });
   });
