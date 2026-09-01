@@ -2,20 +2,34 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [main, develop]
+    branches:
+      - main
+      - develop
+
   pull_request:
-    branches: [main, develop]
+    branches:
+      - main
+      - develop
+
+
+# ==============================================================
+# Jobs
+# ==============================================================
 
 jobs:
 
   # ============================================================
-  # Job 1: Test all backend services
+  # JOB 1: TEST
+  # Run tests for all backend services
   # ============================================================
+
   test:
-    name: Run Tests
+    name: Test - ${{ matrix.service }}
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
+
       matrix:
         service:
           - retirement-party-auth-service
@@ -28,121 +42,159 @@ jobs:
     steps:
 
       # ----------------------------------------------------------
-      # Checkout
+      # Checkout repository
       # ----------------------------------------------------------
-      - name: Checkout code
+
+      - name: Checkout repository
         uses: actions/checkout@v4
 
+
       # ----------------------------------------------------------
-      # Node.js
+      # Setup Node.js
       # ----------------------------------------------------------
-      - name: Setup Node.js 24
+
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "24"
-          cache: npm
-          cache-dependency-path: ${{ matrix.service }}/package-lock.json
+
 
       # ----------------------------------------------------------
       # Install dependencies
       # ----------------------------------------------------------
-      - name: Install dependencies - ${{ matrix.service }}
+
+      - name: Install dependencies
         working-directory: ${{ matrix.service }}
         run: npm ci
 
-      # ==========================================================
-      # Firebase credentials
+
+      # ----------------------------------------------------------
+      # Create Firebase credentials
       #
-      # Both Auth Service and API Gateway use Firebase Admin SDK.
-      # ==========================================================
+      # Auth Service and API Gateway use Firebase Admin SDK.
+      # The credentials are created temporarily on the runner.
+      # ----------------------------------------------------------
+
       - name: Create Firebase Service Account
         if: |
           matrix.service == 'retirement-party-auth-service' ||
           matrix.service == 'retirement-party-api-gateway'
+
+        working-directory: ${{ matrix.service }}
+
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        working-directory: ${{ matrix.service }}
+
         run: |
           if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
-            echo "ERROR: FIREBASE_SERVICE_ACCOUNT secret is not configured."
+            echo "ERROR: FIREBASE_SERVICE_ACCOUNT secret is missing."
             exit 1
           fi
 
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > ServiceAccountKey.json
 
-          echo "Firebase ServiceAccountKey.json created for ${{ matrix.service }}"
+          echo "Firebase credentials created."
 
-      # ==========================================================
+
+      # ----------------------------------------------------------
       # Auth Service tests
       #
-      # Auth Service requires MongoDB + Firebase.
-      # ==========================================================
+      # Auth Service requires MongoDB.
+      # ----------------------------------------------------------
+
       - name: Run Auth Service tests
         if: matrix.service == 'retirement-party-auth-service'
+
         working-directory: retirement-party-auth-service
+
         env:
           MONGO_URI: ${{ secrets.MONGO_URI }}
+
         run: |
           if [ -z "$MONGO_URI" ]; then
-            echo "ERROR: MONGO_URI secret is not configured."
+            echo "ERROR: MONGO_URI secret is missing."
             exit 1
           fi
 
           npm test -- --passWithNoTests
 
-      # ==========================================================
+
+      # ----------------------------------------------------------
       # API Gateway tests
       #
       # API Gateway requires Firebase credentials.
-      # ==========================================================
+      # ----------------------------------------------------------
+
       - name: Run API Gateway tests
         if: matrix.service == 'retirement-party-api-gateway'
+
         working-directory: retirement-party-api-gateway
+
         run: |
           npm test -- --passWithNoTests
 
-      # ==========================================================
-      # Verification Service + other services
-      # ==========================================================
-      - name: Run tests - ${{ matrix.service }}
+
+      # ----------------------------------------------------------
+      # Tests for remaining services
+      # ----------------------------------------------------------
+
+      - name: Run service tests
         if: |
           matrix.service != 'retirement-party-auth-service' &&
           matrix.service != 'retirement-party-api-gateway'
+
         working-directory: ${{ matrix.service }}
+
         run: |
           npm test -- --passWithNoTests
 
-      # ==========================================================
+
+      # ----------------------------------------------------------
       # Remove Firebase credentials
       #
-      # Always remove the temporary service account file,
-      # including when tests fail.
-      # ==========================================================
+      # always() ensures cleanup happens even when tests fail.
+      # ----------------------------------------------------------
+
       - name: Remove Firebase Service Account
-        if: >-
-          always() && (
-          matrix.service == 'retirement-party-auth-service' ||
-          matrix.service == 'retirement-party-api-gateway'
+        if: |
+          always() &&
+          (
+            matrix.service == 'retirement-party-auth-service' ||
+            matrix.service == 'retirement-party-api-gateway'
           )
+
         working-directory: ${{ matrix.service }}
+
         run: |
           rm -f ServiceAccountKey.json
 
-          echo "Firebase credentials removed from ${{ matrix.service }}"
+          echo "Firebase credentials removed."
 
 
   # ============================================================
-  # Job 2: Build Docker images
-  # ============================================================
+  # JOB 2: BUILD DOCKER IMAGES
+  #
+  # Runs only when all tests pass on main.
+  # ==============================================================
+
   build:
-    name: Build Docker Images
+    name: Build - ${{ matrix.service }}
+
     runs-on: ubuntu-latest
+
     needs: test
 
-    # Only build/push images after tests pass on main.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: |
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main'
+
+    permissions:
+      contents: read
+      packages: write
 
     strategy:
+      fail-fast: false
+
       matrix:
         service:
           - retirement-party-auth-service
@@ -152,66 +204,106 @@ jobs:
           - retirement-party-api-gateway
           - retirement-party-websocket-service
 
-    permissions:
-      contents: read
-      packages: write
-
     steps:
 
       # ----------------------------------------------------------
-      # Checkout
+      # Checkout repository
       # ----------------------------------------------------------
-      - name: Checkout code
+
+      - name: Checkout repository
         uses: actions/checkout@v4
 
+
       # ----------------------------------------------------------
-      # Docker Buildx
+      # Setup Docker Buildx
       # ----------------------------------------------------------
-      - name: Set up Docker Buildx
+
+      - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
+
 
       # ----------------------------------------------------------
       # Login to GitHub Container Registry
       # ----------------------------------------------------------
+
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
+
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+
+      # ----------------------------------------------------------
+      # Convert GitHub repository owner to lowercase
+      #
+      # Docker image repository names must be lowercase.
+      # ----------------------------------------------------------
+
+      - name: Set lowercase image owner
+        id: image-owner
+
+        shell: bash
+
+        run: |
+          OWNER="${GITHUB_REPOSITORY_OWNER,,}"
+
+          echo "owner=$OWNER" >> "$GITHUB_OUTPUT"
+
+          echo "Docker image owner: $OWNER"
+
+
       # ----------------------------------------------------------
       # Build and push Docker image
       # ----------------------------------------------------------
-      - name: Build and push - ${{ matrix.service }}
+
+      - name: Build and push Docker image
         uses: docker/build-push-action@v6
+
         with:
           context: ./${{ matrix.service }}
+
           push: true
+
           tags: |
-            ghcr.io/${{ github.repository_owner }}/${{ matrix.service }}:latest
-            ghcr.io/${{ github.repository_owner }}/${{ matrix.service }}:${{ github.sha }}
+            ghcr.io/${{ steps.image-owner.outputs.owner }}/${{ matrix.service }}:latest
+            ghcr.io/${{ steps.image-owner.outputs.owner }}/${{ matrix.service }}:${{ github.sha }}
 
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: |
+            type=gha
+
+          cache-to: |
+            type=gha,mode=max
 
 
   # ============================================================
-  # Job 3: Notify deployment ready
-  # ============================================================
+  # JOB 3: DEPLOYMENT NOTIFICATION
+  #
+  # Runs only when Docker builds successfully on main.
+  # ==============================================================
+
   notify:
-    name: Notify Deployment Ready
+    name: Deployment Ready
+
     runs-on: ubuntu-latest
+
     needs: build
 
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: |
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main'
 
     steps:
 
       - name: Deployment notification
         run: |
-          echo "CI/CD Pipeline completed successfully!"
+          echo "=========================================="
+          echo "CI/CD PIPELINE COMPLETED SUCCESSFULLY"
+          echo "=========================================="
           echo ""
           echo "All backend tests passed."
-          echo "Docker images built and pushed to GitHub Container Registry."
-          echo "Ready for manual deployment to Render/Railway."
+          echo "All Docker images were built successfully."
+          echo "Docker images were pushed to GHCR."
+          echo ""
+          echo "Ready for deployment to Render/Railway."
