@@ -7,6 +7,7 @@ on:
     branches: [main, develop]
 
 jobs:
+
   # ============================================================
   # Job 1: Test all backend services
   # ============================================================
@@ -25,54 +26,110 @@ jobs:
           - retirement-party-websocket-service
 
     steps:
+
+      # ----------------------------------------------------------
+      # Checkout
+      # ----------------------------------------------------------
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # ----------------------------------------------------------
+      # Node.js
+      # ----------------------------------------------------------
       - name: Setup Node.js 24
         uses: actions/setup-node@v4
         with:
           node-version: "24"
+          cache: npm
+          cache-dependency-path: ${{ matrix.service }}/package-lock.json
 
+      # ----------------------------------------------------------
+      # Install dependencies
+      # ----------------------------------------------------------
       - name: Install dependencies - ${{ matrix.service }}
         working-directory: ${{ matrix.service }}
         run: npm ci
 
-      # ========================================================
-      # Auth Service - Create Firebase credentials
-      # ========================================================
+      # ==========================================================
+      # Firebase credentials
+      #
+      # Both Auth Service and API Gateway use Firebase Admin SDK.
+      # ==========================================================
       - name: Create Firebase Service Account
-        if: matrix.service == 'retirement-party-auth-service'
+        if: |
+          matrix.service == 'retirement-party-auth-service' ||
+          matrix.service == 'retirement-party-api-gateway'
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        working-directory: retirement-party-auth-service
+        working-directory: ${{ matrix.service }}
         run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "ERROR: FIREBASE_SERVICE_ACCOUNT secret is not configured."
+            exit 1
+          fi
+
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > ServiceAccountKey.json
 
-      # ========================================================
-      # Run tests
-      # ========================================================
-      - name: Run tests - ${{ matrix.service }}
+          echo "Firebase ServiceAccountKey.json created for ${{ matrix.service }}"
+
+      # ==========================================================
+      # Auth Service tests
+      #
+      # Auth Service requires MongoDB + Firebase.
+      # ==========================================================
+      - name: Run Auth Service tests
         if: matrix.service == 'retirement-party-auth-service'
         working-directory: retirement-party-auth-service
         env:
           MONGO_URI: ${{ secrets.MONGO_URI }}
         run: |
+          if [ -z "$MONGO_URI" ]; then
+            echo "ERROR: MONGO_URI secret is not configured."
+            exit 1
+          fi
+
           npm test -- --passWithNoTests
 
+      # ==========================================================
+      # API Gateway tests
+      #
+      # API Gateway requires Firebase credentials.
+      # ==========================================================
+      - name: Run API Gateway tests
+        if: matrix.service == 'retirement-party-api-gateway'
+        working-directory: retirement-party-api-gateway
+        run: |
+          npm test -- --passWithNoTests
+
+      # ==========================================================
+      # Verification Service + other services
+      # ==========================================================
       - name: Run tests - ${{ matrix.service }}
-        if: matrix.service != 'retirement-party-auth-service'
+        if: |
+          matrix.service != 'retirement-party-auth-service' &&
+          matrix.service != 'retirement-party-api-gateway'
         working-directory: ${{ matrix.service }}
         run: |
           npm test -- --passWithNoTests
 
-      # ========================================================
+      # ==========================================================
       # Remove Firebase credentials
-      # ========================================================
+      #
+      # Always remove the temporary service account file,
+      # including when tests fail.
+      # ==========================================================
       - name: Remove Firebase Service Account
-        if: always() && matrix.service == 'retirement-party-auth-service'
-        working-directory: retirement-party-auth-service
+        if: >-
+          always() && (
+          matrix.service == 'retirement-party-auth-service' ||
+          matrix.service == 'retirement-party-api-gateway'
+          )
+        working-directory: ${{ matrix.service }}
         run: |
           rm -f ServiceAccountKey.json
+
+          echo "Firebase credentials removed from ${{ matrix.service }}"
+
 
   # ============================================================
   # Job 2: Build Docker images
@@ -82,6 +139,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
 
+    # Only build/push images after tests pass on main.
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     strategy:
@@ -99,27 +157,44 @@ jobs:
       packages: write
 
     steps:
+
+      # ----------------------------------------------------------
+      # Checkout
+      # ----------------------------------------------------------
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # ----------------------------------------------------------
+      # Docker Buildx
+      # ----------------------------------------------------------
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
+      # ----------------------------------------------------------
+      # Login to GitHub Container Registry
+      # ----------------------------------------------------------
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # ----------------------------------------------------------
+      # Build and push Docker image
+      # ----------------------------------------------------------
       - name: Build and push - ${{ matrix.service }}
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v6
         with:
           context: ./${{ matrix.service }}
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.service }}:latest
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/${{ matrix.service }}:buildcache
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/${{ matrix.service }}:buildcache,mode=max
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.service }}:latest
+            ghcr.io/${{ github.repository_owner }}/${{ matrix.service }}:${{ github.sha }}
+
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
 
   # ============================================================
   # Job 3: Notify deployment ready
@@ -132,8 +207,11 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
+
       - name: Deployment notification
         run: |
           echo "CI/CD Pipeline completed successfully!"
-          echo "Docker images built and pushed to GitHub Container Registry"
-          echo "Ready for manual deployment to Render/Railway"
+          echo ""
+          echo "All backend tests passed."
+          echo "Docker images built and pushed to GitHub Container Registry."
+          echo "Ready for manual deployment to Render/Railway."
