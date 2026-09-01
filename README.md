@@ -401,6 +401,95 @@ The project demonstrates deployment-ready practices but hasn't been deployed to 
 
 ---
 
+## CI/CD Pipeline
+
+I integrated **GitHub Actions** for automated testing and deployment:
+
+### Pipeline Stages
+
+**1. Test Stage** (runs on all pushes and pull requests)
+- Triggered on: `push` to `main`/`develop`, and `pull_request`
+- Runs all 6 backend services in parallel using matrix strategy
+- Each service:
+  - Installs dependencies via `npm install`
+  - Runs full test suite via `npm test`
+  - Passes with code coverage validation
+- If any service fails, the entire pipeline stops (fail-fast)
+
+**2. Build Stage** (runs only on push to main)
+- Depends on: Test stage passing
+- Builds Docker images for all 6 services
+- Pushes to GitHub Container Registry (GHCR) at `ghcr.io/{owner}/{service}:latest`
+- Uses Docker layer caching for faster builds
+- Services built:
+  - `retirement-party-api-gateway`
+  - `retirement-party-auth-service`
+  - `retirement-party-registration-service`
+  - `retirement-party-verification-service`
+  - `retirement-party-analytics-service`
+  - `retirement-party-websocket-service`
+
+**3. Notify Stage** (runs only on successful builds to main)
+- Confirms deployment readiness
+- Logs Docker image URLs and status
+
+### Workflow File
+
+Configuration in `.github/workflows/ci-cd.yml`:
+
+```yaml
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    # Runs tests for all 6 services in parallel
+    matrix:
+      service: [auth-service, verification-service, analytics-service, 
+                registration-service, api-gateway, websocket-service]
+  
+  build:
+    # Builds Docker images only on push to main
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  
+  notify:
+    # Confirms deployment ready
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+```
+
+### Jest Configuration
+
+All 6 backend services are configured for ES module testing:
+
+- **testEnvironment**: `node` (native Node.js ESM)
+- **transform**: `{}` (no transpilation, use native Node.js)
+- **moduleNameMapper**: Handles relative `.js` imports correctly
+- **Supported Firebase Admin SDK**: Includes `jose` ES module dependency
+
+### Manual Deployment
+
+After CI/CD pipeline passes:
+
+1. Docker images are available at GitHub Container Registry
+2. Pull images to deployment platform (Render, Railway, etc.)
+3. Set environment variables (MongoDB URI, Firebase credentials, Redis URL)
+4. Deploy container and verify health checks
+
+Example:
+```bash
+docker pull ghcr.io/{username}/retirement-party-api-gateway:latest
+docker run -e MONGODB_URI=... -e FIREBASE_KEY=... -p 4000:4000 ghcr.io/{username}/retirement-party-api-gateway:latest
+```
+
+---
+
 ## Testing
 
 I used **Jest** to test important application logic across backend services:

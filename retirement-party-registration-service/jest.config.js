@@ -8,6 +8,11 @@ export default {
   // Match test files
   testMatch: ["**/tests/**/*.test.js"],
 
+  // Handle ES module imports
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+  },
+
   // Coverage configuration
   collectCoverageFrom: [
     "src/**/*.js",
