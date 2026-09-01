@@ -435,27 +435,6 @@ Tests ensure that critical operations (authentication, check-in, lookup) work co
 
 ---
 
-## Future Enhancements
-
-Future versions could add:
-
-- **Email automation** — Send RSVP reminders and confirmation emails
-- **QR code check-in** — Generate QR codes on confirmation, scan at event
-- **Multi-event support** — Manage multiple retirement events in one system
-- **Advanced reporting** — Export attendance and meal data to CSV/PDF
-- **Audit logs** — Track who checked in guests, staff activity, admin changes
-- **Mobile app** — Native iOS/Android for guests and staff
-- **Survey integration** — Post-event feedback collection
-- **Accessibility improvements** — WCAG compliance for larger audiences
-
----
-
-## License
-
-This project is distributed under the ISC License.
-
----
-
 ## Related Project Documentation
 
 For implementation details, refer to service-specific READMEs:
