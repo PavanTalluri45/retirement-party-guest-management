@@ -1,0 +1,252 @@
+{
+  "timestamp": "2026-09-05T10:49:42.958Z",
+  "system": "Retirement Party Guest Management System",
+  "architectureAudit": {
+    "frontendFramework": "Next.js 14+ (React, TypeScript, Tailwind CSS, Redux Toolkit)",
+    "backendFramework": "Express 5 (Node.js, ES Modules)",
+    "database": "MongoDB Atlas (retirement_party)",
+    "cache": "Upstash Redis (REST API)",
+    "auth": "Firebase Admin Authentication with RBAC (STAFF, ADMIN)",
+    "concurrencyProtection": [
+      "MongoDB atomic findOneAndUpdate conditional compare-and-swap",
+      "Unique index on checkins.guestId (idx_checkins_guestId_unique)",
+      "Dual-key Redis cache invalidation on check-in"
+    ],
+    "indexesVerified": {
+      "guests": [
+        "_id_",
+        "idx_guests_phone_unique",
+        "idx_guests_confirmationNumber_unique",
+        "idx_guests_attending_date",
+        "idx_guests_attending_meal"
+      ],
+      "checkins": [
+        "_id_",
+        "idx_checkins_guestId_unique",
+        "idx_checkins_staff_date",
+        "idx_checkins_date",
+        "idx_checkins_result_date",
+        "idx_checkins_result_staff"
+      ]
+    }
+  },
+  "testA_concurrency": [
+    {
+      "test": "5 different guests",
+      "concurrentRequests": 5,
+      "guestType": "different",
+      "successful": 5,
+      "alreadyCheckedIn": 0,
+      "failed": 0,
+      "duplicateRecords": 0,
+      "dbErrors": 0,
+      "statusCodes": {
+        "200": 5
+      },
+      "avgMs": 169.85,
+      "medianMs": 167.34,
+      "p95Ms": 180.68,
+      "minMs": 165.21,
+      "maxMs": 180.68
+    },
+    {
+      "test": "10 different guests",
+      "concurrentRequests": 10,
+      "guestType": "different",
+      "successful": 10,
+      "alreadyCheckedIn": 0,
+      "failed": 0,
+      "duplicateRecords": 0,
+      "dbErrors": 0,
+      "statusCodes": {
+        "200": 10
+      },
+      "avgMs": 171.22,
+      "medianMs": 172.11,
+      "p95Ms": 179.13,
+      "minMs": 164.78,
+      "maxMs": 179.13
+    },
+    {
+      "test": "20 different guests",
+      "concurrentRequests": 20,
+      "guestType": "different",
+      "successful": 20,
+      "alreadyCheckedIn": 0,
+      "failed": 0,
+      "duplicateRecords": 0,
+      "dbErrors": 0,
+      "statusCodes": {
+        "200": 20
+      },
+      "avgMs": 248.64,
+      "medianMs": 253.41,
+      "p95Ms": 267.44,
+      "minMs": 221.3,
+      "maxMs": 270.79
+    },
+    {
+      "test": "5 same guest",
+      "concurrentRequests": 5,
+      "guestType": "same",
+      "successful": 1,
+      "alreadyCheckedIn": 4,
+      "failed": 0,
+      "duplicateRecords": 0,
+      "dbErrors": 0,
+      "statusCodes": {
+        "200": 1,
+        "409": 4
+      },
+      "avgMs": 73.38,
+      "medianMs": 72.91,
+      "p95Ms": 77.36,
+      "minMs": 70.23,
+      "maxMs": 77.36
+    },
+    {
+      "test": "10 same guest",
+      "concurrentRequests": 10,
+      "guestType": "same",
+      "successful": 1,
+      "alreadyCheckedIn": 9,
+      "failed": 0,
+      "duplicateRecords": 0,
+      "dbErrors": 0,
+      "statusCodes": {
+        "200": 1,
+        "409": 9
+      },
+      "avgMs": 82.84,
+      "medianMs": 84.87,
+      "p95Ms": 87.83,
+      "minMs": 74.22,
+      "maxMs": 87.83
+    },
+    {
+      "test": "20 same guest",
+      "concurrentRequests": 20,
+      "guestType": "same",
+      "successful": 1,
+      "alreadyCheckedIn": 19,
+      "failed": 0,
+      "duplicateRecords": 0,
+      "dbErrors": 0,
+      "statusCodes": {
+        "200": 1,
+        "409": 19
+      },
+      "avgMs": 177.4,
+      "medianMs": 182.93,
+      "p95Ms": 193.42,
+      "minMs": 148.59,
+      "maxMs": 193.45
+    }
+  ],
+  "twentyRequestSameGuestAudit": {
+    "guestId": "60f100000000000000000001",
+    "guestName": "TEST-SAME-001",
+    "guestStatus": "CHECKED_IN",
+    "guestCheckedIn": true,
+    "checkInTimestamp": "2026-09-05T10:49:39.640Z",
+    "recordedAttendanceCount": 1,
+    "auditCheckinRecord": {
+      "id": "chk_1",
+      "checkedInBy": "test-firebase-uid",
+      "checkedInByName": "Staff Member",
+      "checkedInAt": "2026-09-05T10:49:39.640Z",
+      "result": "SUCCESS"
+    }
+  },
+  "testB_caching": {
+    "workload": {
+      "total": 100,
+      "unique": 70,
+      "repeated": 30
+    },
+    "redisOff": {
+      "totalRequests": 100,
+      "successful": 100,
+      "failed": 0,
+      "dbQueryCount": 100,
+      "avg": 19.82,
+      "median": 17.12,
+      "p95": 32.96,
+      "min": 12.93,
+      "max": 54.49
+    },
+    "redisOn": {
+      "totalRequests": 100,
+      "successful": 100,
+      "failed": 0,
+      "dbQueryCount": 70,
+      "cacheHits": 30,
+      "cacheMisses": 70,
+      "cacheHitRate": 30,
+      "avg": 12.32,
+      "median": 15.18,
+      "p95": 24.16,
+      "min": 0.09,
+      "max": 27.67
+    },
+    "improvements": {
+      "dbLookupReductionPercent": 30,
+      "avgResponseTimeImprovementPercent": 37.84,
+      "medianResponseTimeImprovementPercent": 11.33,
+      "p95ResponseTimeImprovementPercent": 26.7,
+      "dbQueriesAvoided": 30,
+      "cacheHitRate": 30
+    }
+  },
+  "cacheCorrectness": {
+    "firstLookup": {
+      "status": "PASS",
+      "behavior": "Cache MISS -> database lookup -> cache populated in Redis"
+    },
+    "secondLookup": {
+      "status": "PASS",
+      "behavior": "Cache HIT -> returned from Redis immediately"
+    },
+    "separateGuest": {
+      "status": "PASS",
+      "behavior": "Distinct confirmation code created independent Redis cache key"
+    },
+    "cacheInvalidation": {
+      "status": "PASS",
+      "behavior": "Dual-key invalidation deleted confirmation and phone cache entries upon check-in"
+    },
+    "redisFailureFallback": {
+      "status": "PASS",
+      "behavior": "Redis failure gracefully caught -> seamless fallback to authoritative database"
+    }
+  },
+  "testStatus": {
+    "existingTests": {
+      "totalSuites": 7,
+      "totalTests": 40,
+      "passed": 40,
+      "failed": 0
+    },
+    "benchmarkTests": {
+      "totalSuites": 2,
+      "totalTests": 12,
+      "passed": 12,
+      "failed": 0
+    },
+    "concurrencyScenarios": 6,
+    "cachingScenarios": 2,
+    "failures": 0,
+    "notTested": [
+      "10,000 concurrent requests (requires multi-node distributed load generator)",
+      "Permanent live production data deletion (prevented by design for data safety)"
+    ],
+    "limitations": [
+      "Single-node test harness using supertest and Promise.all",
+      "Downstream microservice call network latency simulated at 12ms roundtrip"
+    ]
+  },
+  "resumeMetrics": [
+    "Tested 20 concurrent staff check-in requests with 20/20 successful responses, 0 duplicate attendance records, and 0 database errors.",
+    "Added Redis caching for repeated guest lookups, reducing average response time by 37.84% across a 100-request benchmark."
+  ]
+}

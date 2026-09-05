@@ -1,0 +1,501 @@
+{
+  "timestamp": "2026-09-05T11:31:12.961Z",
+  "system": "Retirement Party Guest Management System",
+  "evaluationType": "Multi-Trial Statistical Replication",
+  "architectureInspection": {
+    "checkinController": "Validated via CheckInSchema, forwards to CheckInService, handles errors via central errorHandler (409 on duplicate)",
+    "checkinService": "Authoritative MongoDB lookup, calls executeAtomicCheckIn, executes dual-key cache invalidation, fire-and-forget WebSocket notice",
+    "checkinRepository": "Uses findOneAndUpdate with pre-condition $or: [{ checkedIn: { $ne: true } }, ...], inserts to checkins with unique guestId index",
+    "atomicDatabaseUpdates": true,
+    "conditionalCheckInState": true,
+    "uniqueIndexOnGuestId": true,
+    "multiDocumentTransactions": false,
+    "transactionNote": "Uses atomic single-document compare-and-swap and unique index constraint rather than multi-document transactions"
+  },
+  "concurrencyEvaluation": {
+    "trialsCount": 10,
+    "requestsPerTrial": 20,
+    "target": "same guest",
+    "successfulTrials": 10,
+    "duplicateTrials": 0,
+    "databaseErrorTrials": 0,
+    "totalDuplicateRecords": 0,
+    "concurrencyReliabilityPercent": 100,
+    "trials": [
+      {
+        "trial": 1,
+        "requestsSent": 20,
+        "successfulCheckIns": 1,
+        "alreadyCheckedInResponses": 19,
+        "failedResponses": 0,
+        "duplicateRecords": 0,
+        "dbErrors": 0,
+        "avgMs": 282.37,
+        "medianMs": 282.37,
+        "p95Ms": 291.93,
+        "minMs": 271.52,
+        "maxMs": 306.1,
+        "finalAttendanceRecordCount": 1
+      },
+      {
+        "trial": 2,
+        "requestsSent": 20,
+        "successfulCheckIns": 1,
+        "alreadyCheckedInResponses": 19,
+        "failedResponses": 0,
+        "duplicateRecords": 0,
+        "dbErrors": 0,
+        "avgMs": 132.48,
+        "medianMs": 130.86,
+        "p95Ms": 143.13,
+        "minMs": 124.83,
+        "maxMs": 143.94,
+        "finalAttendanceRecordCount": 1
+      },
+      {
+        "trial": 3,
+        "requestsSent": 20,
+        "successfulCheckIns": 1,
+        "alreadyCheckedInResponses": 19,
+        "failedResponses": 0,
+        "duplicateRecords": 0,
+        "dbErrors": 0,
+        "avgMs": 133.43,
+        "medianMs": 133.37,
+        "p95Ms": 146.92,
+        "minMs": 120.18,
+        "maxMs": 147.55,
+        "finalAttendanceRecordCount": 1
+      },
+      {
+        "trial": 4,
+        "requestsSent": 20,
+        "successfulCheckIns": 1,
+        "alreadyCheckedInResponses": 19,
+        "failedResponses": 0,
+        "duplicateRecords": 0,
+        "dbErrors": 0,
+        "avgMs": 193.97,
+        "medianMs": 210.39,
+        "p95Ms": 222.03,
+        "minMs": 154.14,
+        "maxMs": 223.45,
+        "finalAttendanceRecordCount": 1
+      },
+      {
+        "trial": 5,
+        "requestsSent": 20,
+        "successfulCheckIns": 1,
+        "alreadyCheckedInResponses": 19,
+        "failedResponses": 0,
+        "duplicateRecords": 0,
+        "dbErrors": 0,
+        "avgMs": 115.04,
+        "medianMs": 113.38,
+        "p95Ms": 127.49,
+        "minMs": 104.82,
+        "maxMs": 129.23,
+        "finalAttendanceRecordCount": 1
+      },
+      {
+        "trial": 6,
+        "requestsSent": 20,
+        "successfulCheckIns": 1,
+        "alreadyCheckedInResponses": 19,
+        "failedResponses": 0,
+        "duplicateRecords": 0,
+        "dbErrors": 0,
+        "avgMs": 116.57,
+        "medianMs": 116.75,
+        "p95Ms": 129.22,
+        "minMs": 105.44,
+        "maxMs": 129.31,
+        "finalAttendanceRecordCount": 1
+      },
+      {
+        "trial": 7,
+        "requestsSent": 20,
+        "successfulCheckIns": 1,
+        "alreadyCheckedInResponses": 19,
+        "failedResponses": 0,
+        "duplicateRecords": 0,
+        "dbErrors": 0,
+        "avgMs": 113.94,
+        "medianMs": 113.08,
+        "p95Ms": 128.56,
+        "minMs": 103.26,
+        "maxMs": 129.27,
+        "finalAttendanceRecordCount": 1
+      },
+      {
+        "trial": 8,
+        "requestsSent": 20,
+        "successfulCheckIns": 1,
+        "alreadyCheckedInResponses": 19,
+        "failedResponses": 0,
+        "duplicateRecords": 0,
+        "dbErrors": 0,
+        "avgMs": 115.56,
+        "medianMs": 110.44,
+        "p95Ms": 139.75,
+        "minMs": 98.29,
+        "maxMs": 140.9,
+        "finalAttendanceRecordCount": 1
+      },
+      {
+        "trial": 9,
+        "requestsSent": 20,
+        "successfulCheckIns": 1,
+        "alreadyCheckedInResponses": 19,
+        "failedResponses": 0,
+        "duplicateRecords": 0,
+        "dbErrors": 0,
+        "avgMs": 111.86,
+        "medianMs": 110.21,
+        "p95Ms": 125.83,
+        "minMs": 100.46,
+        "maxMs": 126.32,
+        "finalAttendanceRecordCount": 1
+      },
+      {
+        "trial": 10,
+        "requestsSent": 20,
+        "successfulCheckIns": 1,
+        "alreadyCheckedInResponses": 19,
+        "failedResponses": 0,
+        "duplicateRecords": 0,
+        "dbErrors": 0,
+        "avgMs": 188.47,
+        "medianMs": 185.22,
+        "p95Ms": 225.96,
+        "minMs": 133.2,
+        "maxMs": 227.78,
+        "finalAttendanceRecordCount": 1
+      }
+    ]
+  },
+  "redisEvaluation": {
+    "trialsCount": 10,
+    "workload": {
+      "total": 100,
+      "unique": 70,
+      "repeated": 30,
+      "interleaved": true
+    },
+    "workloadNature": "Synthetic benchmark (30% repeat rate designed, not discovered)",
+    "averageLatencies": {
+      "redisOffMeanAvgMs": 21.85,
+      "redisOnMeanAvgMs": 15.71,
+      "redisOffMeanMedianMs": 18.45,
+      "redisOnMeanMedianMs": 15.61,
+      "redisOffMeanP95Ms": 41.45,
+      "redisOnMeanP95Ms": 41.49
+    },
+    "improvementAcrossTrials": {
+      "meanImprovementPercent": 26.1,
+      "medianImprovementPercent": 29.71,
+      "minImprovementPercent": -23.58,
+      "maxImprovementPercent": 58.03,
+      "standardDeviation": 19.98,
+      "approximateImprovementStatement": "approximately 26%"
+    },
+    "databaseReduction": {
+      "queriesPerTrialWithoutRedis": 100,
+      "queriesPerTrialWithRedis": 70,
+      "reductionPercent": 30,
+      "queriesAvoidedPerTrial": 30,
+      "totalQueriesAvoidedAcross10Trials": 300
+    },
+    "trials": [
+      {
+        "trial": 1,
+        "redisOff": {
+          "avgMs": 22.91,
+          "medianMs": 17.91,
+          "p95Ms": 46.75,
+          "dbQueries": 100
+        },
+        "redisOn": {
+          "avgMs": 13.81,
+          "medianMs": 15.38,
+          "p95Ms": 30.21,
+          "dbQueries": 70,
+          "cacheHits": 30,
+          "cacheMisses": 70,
+          "cacheHitRate": 30,
+          "dbQueriesAvoided": 30
+        },
+        "improvements": {
+          "avgResponseImprovementPercent": 39.72,
+          "medianResponseImprovementPercent": 14.13,
+          "p95ResponseImprovementPercent": 35.38,
+          "dbQueryReductionPercent": 30
+        }
+      },
+      {
+        "trial": 2,
+        "redisOff": {
+          "avgMs": 19.68,
+          "medianMs": 17.03,
+          "p95Ms": 37.38,
+          "dbQueries": 100
+        },
+        "redisOn": {
+          "avgMs": 14.21,
+          "medianMs": 15.32,
+          "p95Ms": 33.89,
+          "dbQueries": 70,
+          "cacheHits": 30,
+          "cacheMisses": 70,
+          "cacheHitRate": 30,
+          "dbQueriesAvoided": 30
+        },
+        "improvements": {
+          "avgResponseImprovementPercent": 27.79,
+          "medianResponseImprovementPercent": 10.04,
+          "p95ResponseImprovementPercent": 9.34,
+          "dbQueryReductionPercent": 30
+        }
+      },
+      {
+        "trial": 3,
+        "redisOff": {
+          "avgMs": 20.26,
+          "medianMs": 17.7,
+          "p95Ms": 37.87,
+          "dbQueries": 100
+        },
+        "redisOn": {
+          "avgMs": 14.74,
+          "medianMs": 15.33,
+          "p95Ms": 39.66,
+          "dbQueries": 70,
+          "cacheHits": 30,
+          "cacheMisses": 70,
+          "cacheHitRate": 30,
+          "dbQueriesAvoided": 30
+        },
+        "improvements": {
+          "avgResponseImprovementPercent": 27.25,
+          "medianResponseImprovementPercent": 13.39,
+          "p95ResponseImprovementPercent": -4.73,
+          "dbQueryReductionPercent": 30
+        }
+      },
+      {
+        "trial": 4,
+        "redisOff": {
+          "avgMs": 20.47,
+          "medianMs": 16.66,
+          "p95Ms": 44.1,
+          "dbQueries": 100
+        },
+        "redisOn": {
+          "avgMs": 15.65,
+          "medianMs": 15.8,
+          "p95Ms": 37.57,
+          "dbQueries": 70,
+          "cacheHits": 30,
+          "cacheMisses": 70,
+          "cacheHitRate": 30,
+          "dbQueriesAvoided": 30
+        },
+        "improvements": {
+          "avgResponseImprovementPercent": 23.55,
+          "medianResponseImprovementPercent": 5.16,
+          "p95ResponseImprovementPercent": 14.81,
+          "dbQueryReductionPercent": 30
+        }
+      },
+      {
+        "trial": 5,
+        "redisOff": {
+          "avgMs": 19.86,
+          "medianMs": 16.73,
+          "p95Ms": 35.56,
+          "dbQueries": 100
+        },
+        "redisOn": {
+          "avgMs": 13.96,
+          "medianMs": 15.33,
+          "p95Ms": 35.81,
+          "dbQueries": 70,
+          "cacheHits": 30,
+          "cacheMisses": 70,
+          "cacheHitRate": 30,
+          "dbQueriesAvoided": 30
+        },
+        "improvements": {
+          "avgResponseImprovementPercent": 29.71,
+          "medianResponseImprovementPercent": 8.37,
+          "p95ResponseImprovementPercent": -0.7,
+          "dbQueryReductionPercent": 30
+        }
+      },
+      {
+        "trial": 6,
+        "redisOff": {
+          "avgMs": 21,
+          "medianMs": 17.04,
+          "p95Ms": 38.31,
+          "dbQueries": 100
+        },
+        "redisOn": {
+          "avgMs": 13.68,
+          "medianMs": 15.44,
+          "p95Ms": 29.37,
+          "dbQueries": 70,
+          "cacheHits": 30,
+          "cacheMisses": 70,
+          "cacheHitRate": 30,
+          "dbQueriesAvoided": 30
+        },
+        "improvements": {
+          "avgResponseImprovementPercent": 34.86,
+          "medianResponseImprovementPercent": 9.39,
+          "p95ResponseImprovementPercent": 23.34,
+          "dbQueryReductionPercent": 30
+        }
+      },
+      {
+        "trial": 7,
+        "redisOff": {
+          "avgMs": 20.25,
+          "medianMs": 17.34,
+          "p95Ms": 37.44,
+          "dbQueries": 100
+        },
+        "redisOn": {
+          "avgMs": 13.9,
+          "medianMs": 15.42,
+          "p95Ms": 31.8,
+          "dbQueries": 70,
+          "cacheHits": 30,
+          "cacheMisses": 70,
+          "cacheHitRate": 30,
+          "dbQueriesAvoided": 30
+        },
+        "improvements": {
+          "avgResponseImprovementPercent": 31.36,
+          "medianResponseImprovementPercent": 11.07,
+          "p95ResponseImprovementPercent": 15.06,
+          "dbQueryReductionPercent": 30
+        }
+      },
+      {
+        "trial": 8,
+        "redisOff": {
+          "avgMs": 20.57,
+          "medianMs": 16.54,
+          "p95Ms": 38.22,
+          "dbQueries": 100
+        },
+        "redisOn": {
+          "avgMs": 25.42,
+          "medianMs": 17.37,
+          "p95Ms": 96.44,
+          "dbQueries": 70,
+          "cacheHits": 30,
+          "cacheMisses": 70,
+          "cacheHitRate": 30,
+          "dbQueriesAvoided": 30
+        },
+        "improvements": {
+          "avgResponseImprovementPercent": -23.58,
+          "medianResponseImprovementPercent": -5.02,
+          "p95ResponseImprovementPercent": -152.33,
+          "dbQueryReductionPercent": 30
+        }
+      },
+      {
+        "trial": 9,
+        "redisOff": {
+          "avgMs": 33.14,
+          "medianMs": 30.24,
+          "p95Ms": 58.7,
+          "dbQueries": 100
+        },
+        "redisOn": {
+          "avgMs": 13.91,
+          "medianMs": 15.5,
+          "p95Ms": 26.6,
+          "dbQueries": 70,
+          "cacheHits": 30,
+          "cacheMisses": 70,
+          "cacheHitRate": 30,
+          "dbQueriesAvoided": 30
+        },
+        "improvements": {
+          "avgResponseImprovementPercent": 58.03,
+          "medianResponseImprovementPercent": 48.74,
+          "p95ResponseImprovementPercent": 54.68,
+          "dbQueryReductionPercent": 30
+        }
+      },
+      {
+        "trial": 10,
+        "redisOff": {
+          "avgMs": 20.37,
+          "medianMs": 17.3,
+          "p95Ms": 40.21,
+          "dbQueries": 100
+        },
+        "redisOn": {
+          "avgMs": 17.86,
+          "medianMs": 15.22,
+          "p95Ms": 53.56,
+          "dbQueries": 70,
+          "cacheHits": 30,
+          "cacheMisses": 70,
+          "cacheHitRate": 30,
+          "dbQueriesAvoided": 30
+        },
+        "improvements": {
+          "avgResponseImprovementPercent": 12.32,
+          "medianResponseImprovementPercent": 12.02,
+          "p95ResponseImprovementPercent": -33.2,
+          "dbQueryReductionPercent": 30
+        }
+      }
+    ]
+  },
+  "cacheCorrectness": {
+    "firstLookup": {
+      "status": "PASS",
+      "behavior": "Cache MISS -> database lookup -> cache populated in Redis"
+    },
+    "secondLookup": {
+      "status": "PASS",
+      "behavior": "Cache HIT -> returned from Redis immediately"
+    },
+    "separateGuest": {
+      "status": "PASS",
+      "behavior": "Distinct confirmation code created independent Redis cache key"
+    },
+    "cacheInvalidation": {
+      "status": "PASS",
+      "behavior": "Dual-key invalidation deleted confirmation and phone cache entries upon check-in"
+    },
+    "redisFailureFallback": {
+      "status": "PASS",
+      "behavior": "Redis failure gracefully caught -> seamless fallback to authoritative database"
+    },
+    "dataCorrectness": {
+      "status": "PASS",
+      "behavior": "Cached payload matches authoritative database attributes exactly"
+    }
+  },
+  "testHealth": {
+    "existingTests": 40,
+    "existingSuites": 7,
+    "benchmarkSuites": 2,
+    "benchmarkTests": 32,
+    "totalPassing": 72,
+    "failures": 0,
+    "regressions": 0
+  },
+  "resumeSafeMetrics": {
+    "concurrencyStatement": "Implemented concurrent check-in handling using MongoDB atomic updates and unique constraints, allowing only 1 of 20 simultaneous requests for the same guest to succeed with 0 duplicate attendance records across 10 repeated test trials.",
+    "redisStatement": "Added Redis caching for guest lookups, reducing average response time by approximately 26% across repeated 100-request benchmarks."
+  }
+}

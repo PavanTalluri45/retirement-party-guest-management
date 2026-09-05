@@ -1,0 +1,129 @@
+{
+  "timestamp": "2026-09-05T11:28:13.962Z",
+  "testSuite": "Concurrent Staff Check-in Reliability",
+  "methodology": {
+    "tool": "supertest + Promise.all",
+    "app": "Real Express app (verification-service)",
+    "db": "In-memory MongoDB mock with atomic findOneAndUpdate simulation",
+    "redis": "In-memory Map mock",
+    "auth": "Firebase test-mode mock verifier",
+    "timing": "performance.now() from HTTP request send to response receipt"
+  },
+  "results": [
+    {
+      "test": "5 different guests",
+      "concurrentRequests": 5,
+      "guestType": "different",
+      "successful": 5,
+      "alreadyCheckedIn": 0,
+      "failed": 0,
+      "duplicateRecords": 0,
+      "dbErrors": 0,
+      "statusCodes": {
+        "200": 5
+      },
+      "avgMs": 217.98,
+      "medianMs": 217.16,
+      "p95Ms": 225.13,
+      "minMs": 213.37,
+      "maxMs": 225.13
+    },
+    {
+      "test": "10 different guests",
+      "concurrentRequests": 10,
+      "guestType": "different",
+      "successful": 10,
+      "alreadyCheckedIn": 0,
+      "failed": 0,
+      "duplicateRecords": 0,
+      "dbErrors": 0,
+      "statusCodes": {
+        "200": 10
+      },
+      "avgMs": 268.61,
+      "medianMs": 269.39,
+      "p95Ms": 271.37,
+      "minMs": 262.69,
+      "maxMs": 271.37
+    },
+    {
+      "test": "20 different guests",
+      "concurrentRequests": 20,
+      "guestType": "different",
+      "successful": 20,
+      "alreadyCheckedIn": 0,
+      "failed": 0,
+      "duplicateRecords": 0,
+      "dbErrors": 0,
+      "statusCodes": {
+        "200": 20
+      },
+      "avgMs": 386.07,
+      "medianMs": 382.17,
+      "p95Ms": 420.37,
+      "minMs": 351.97,
+      "maxMs": 425.82
+    },
+    {
+      "test": "5 same guest",
+      "concurrentRequests": 5,
+      "guestType": "same",
+      "successful": 1,
+      "alreadyCheckedIn": 4,
+      "failed": 0,
+      "duplicateRecords": 0,
+      "dbErrors": 0,
+      "statusCodes": {
+        "200": 1,
+        "409": 4
+      },
+      "avgMs": 274.6,
+      "medianMs": 290.41,
+      "p95Ms": 297.17,
+      "minMs": 240.69,
+      "maxMs": 297.17
+    },
+    {
+      "test": "10 same guest",
+      "concurrentRequests": 10,
+      "guestType": "same",
+      "successful": 1,
+      "alreadyCheckedIn": 9,
+      "failed": 0,
+      "duplicateRecords": 0,
+      "dbErrors": 0,
+      "statusCodes": {
+        "200": 1,
+        "409": 9
+      },
+      "avgMs": 107.88,
+      "medianMs": 108.82,
+      "p95Ms": 122.82,
+      "minMs": 93.63,
+      "maxMs": 122.82
+    },
+    {
+      "test": "20 same guest",
+      "concurrentRequests": 20,
+      "guestType": "same",
+      "successful": 1,
+      "alreadyCheckedIn": 19,
+      "failed": 0,
+      "duplicateRecords": 0,
+      "dbErrors": 0,
+      "statusCodes": {
+        "200": 1,
+        "409": 19
+      },
+      "avgMs": 159.74,
+      "medianMs": 159.56,
+      "p95Ms": 165.43,
+      "minMs": 153.17,
+      "maxMs": 167.22
+    }
+  ],
+  "summary": {
+    "totalTests": 6,
+    "allPassed": true
+  }
+}
