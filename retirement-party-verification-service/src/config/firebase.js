@@ -8,46 +8,130 @@ const require = createRequire(import.meta.url);
 let adminAuthInstance = null;
 
 /**
- * Get or initialize the Firebase Admin Auth instance.
- * Gracefully provides a test-safe auth verifier during automated testing.
+ * Get or initialize Firebase Admin Auth.
+ *
+ * Credential priority:
+ *
+ * 1. Render Secret File
+ *    /etc/secrets/ServiceAccountKey.json
+ *
+ * 2. Local ServiceAccountKey.json
+ *    <service-root>/ServiceAccountKey.json
+ *
+ * 3. Firebase environment variables
+ *    FIREBASE_PROJECT_ID
+ *    FIREBASE_CLIENT_EMAIL
+ *    FIREBASE_PRIVATE_KEY
+ *
+ * Tests use a lightweight mock verifier.
  */
 export function getAdminAuth() {
-  if (adminAuthInstance) return adminAuthInstance;
+  if (adminAuthInstance) {
+    return adminAuthInstance;
+  }
 
-  // In test environment, return a standard mockable verifier
+  /*
+   * Test environment
+   *
+   * This prevents automated tests from requiring real Firebase
+   * credentials.
+   */
   if (process.env.NODE_ENV === "test") {
     adminAuthInstance = {
       verifyIdToken: async (token) => {
         if (!token || token === "invalid-token") {
-          const err = new Error("Invalid token");
-          err.code = "auth/argument-error";
-          throw err;
+          const error = new Error("Invalid token");
+          error.code = "auth/argument-error";
+          throw error;
         }
+
         return {
           uid: "test-firebase-uid",
           email: "staff@event.com",
         };
       },
     };
+
     return adminAuthInstance;
   }
 
+  /*
+   * Firebase environment credentials.
+   *
+   * These are kept as a fallback so the service remains compatible
+   * with environments where Firebase credentials are provided through
+   * environment variables.
+   */
   const hasEnvCredentials =
-    config.firebase.projectId &&
-    config.firebase.clientEmail &&
-    config.firebase.privateKey;
+    Boolean(config.firebase?.projectId) &&
+    Boolean(config.firebase?.clientEmail) &&
+    Boolean(config.firebase?.privateKey);
 
-  const serviceAccountPath = path.resolve(process.cwd(), "ServiceAccountKey.json");
+  /*
+   * Local development credential location.
+   */
+  const localServiceAccountPath = path.resolve(
+    process.cwd(),
+    "ServiceAccountKey.json"
+  );
+
+  /*
+   * Render Secret File location.
+   */
+  const renderServiceAccountPath =
+    "/etc/secrets/ServiceAccountKey.json";
+
+  /*
+   * Prefer Render Secret File when available.
+   */
+  const serviceAccountPath = fs.existsSync(renderServiceAccountPath)
+    ? renderServiceAccountPath
+    : localServiceAccountPath;
+
   const hasKeyFile = fs.existsSync(serviceAccountPath);
 
   try {
-    const { initializeApp, cert, getApps, getApp } = require("firebase-admin/app");
+    const {
+      initializeApp,
+      cert,
+      getApps,
+      getApp,
+    } = require("firebase-admin/app");
+
     const { getAuth } = require("firebase-admin/auth");
 
     let firebaseApp;
+
+    /*
+     * Reuse an already initialized Firebase app.
+     */
     if (getApps().length > 0) {
       firebaseApp = getApp();
-    } else if (hasEnvCredentials) {
+
+      console.log(
+        "[Firebase Admin] Reusing existing Firebase Admin SDK instance."
+      );
+    }
+
+    /*
+     * Render/local ServiceAccountKey.json takes priority.
+     */
+    else if (hasKeyFile) {
+      const serviceAccount = require(serviceAccountPath);
+
+      firebaseApp = initializeApp({
+        credential: cert(serviceAccount),
+      });
+
+      console.log(
+        `[Firebase Admin] Initialized from ServiceAccountKey.json at ${serviceAccountPath}.`
+      );
+    }
+
+    /*
+     * Environment credentials are the fallback.
+     */
+    else if (hasEnvCredentials) {
       firebaseApp = initializeApp({
         credential: cert({
           projectId: config.firebase.projectId,
@@ -55,33 +139,58 @@ export function getAdminAuth() {
           privateKey: config.firebase.privateKey,
         }),
       });
-      console.log("[Firebase Admin] Initialized from environment variables.");
-    } else if (hasKeyFile) {
-      const serviceAccount = require(serviceAccountPath);
-      firebaseApp = initializeApp({
-        credential: cert(serviceAccount),
-      });
-      console.log("[Firebase Admin] Initialized from ServiceAccountKey.json.");
+
+      console.log(
+        "[Firebase Admin] Initialized from environment variables."
+      );
     }
 
-    if (firebaseApp) {
-      adminAuthInstance = getAuth(firebaseApp);
+    /*
+     * No credentials available.
+     */
+    else {
+      throw new Error(
+        "[Firebase Admin] No Firebase credentials found.\n" +
+          "Checked:\n" +
+          `- ${renderServiceAccountPath}\n` +
+          `- ${localServiceAccountPath}\n` +
+          "- FIREBASE_PROJECT_ID / FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY"
+      );
     }
+
+    adminAuthInstance = getAuth(firebaseApp);
+
+    return adminAuthInstance;
   } catch (error) {
-    console.warn(
-      `[Firebase Admin] Could not initialize Admin SDK (${error.message}). Running in fallback mode.`
+    /*
+     * Do not silently continue in production.
+     *
+     * The Verification Service needs Firebase authentication,
+     * so starting without Firebase Admin would only move the
+     * failure somewhere else and make debugging worse.
+     */
+    console.error(
+      `[Firebase Admin] Initialization failed: ${error.message}`
     );
-  }
 
-  return adminAuthInstance;
+    throw error;
+  }
 }
 
 /**
- * Injects a mock auth instance for unit/integration tests.
+ * Inject a mock Firebase Auth instance for tests.
  */
 export function setAdminAuth(mockAuth) {
   adminAuthInstance = mockAuth;
 }
 
+/*
+ * Initialize Firebase Auth when this module is loaded.
+ */
 export const adminAuth = getAdminAuth();
-export default { getAdminAuth, setAdminAuth, adminAuth };
+
+export default {
+  getAdminAuth,
+  setAdminAuth,
+  adminAuth,
+};
