@@ -1,7 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import type { AttendeeInfo, VerificationMethod, VerificationMeta } from "@/lib/check-in/types";
+import { useState, type FormEvent } from "react";
+import type {
+  AttendeeInfo,
+  VerificationMethod,
+  VerificationMeta,
+} from "@/lib/check-in/types";
 import {
   verifyAttendeeByConfirmation,
   verifyAttendeeByPhone,
@@ -11,13 +15,19 @@ import {
 export function useAttendeeVerification() {
   const [verificationMethod, setVerificationMethod] =
     useState<VerificationMethod>("code");
+
   const [inputValue, setInputValue] = useState("");
   const [attendee, setAttendee] = useState<AttendeeInfo | null>(null);
-  const [verificationMeta, setVerificationMeta] = useState<VerificationMeta | null>(null);
+  const [verificationMeta, setVerificationMeta] =
+    useState<VerificationMeta | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  /**
+   * Reset the current verification form and attendee state.
+   */
   const resetForm = () => {
     setInputValue("");
     setAttendee(null);
@@ -26,78 +36,191 @@ export function useAttendeeVerification() {
     setSuccess("");
   };
 
+  /**
+   * Change verification method.
+   *
+   * Changing between confirmation number and phone number
+   * also clears the previous verification result.
+   */
   const selectMethod = (method: VerificationMethod) => {
     setVerificationMethod(method);
     resetForm();
   };
 
+  /**
+   * Update verification input.
+   */
   const updateInputValue = (value: string) => {
     setInputValue(value);
-    if (error) setError("");
+
+    if (error) {
+      setError("");
+    }
   };
 
+  /**
+   * Raw guest response returned by the Verification Service.
+   *
+   * This intentionally contains no QR-related fields.
+   */
   interface RawGuestResponse {
     id?: string;
     _id?: string;
+
     name?: string;
     fullName?: string;
+
     phone?: string;
     phoneNumber?: string;
+
     confirmationNumber?: string;
+
     registeredAt?: string;
     createdAt?: string;
+
     attending?: boolean | string;
+
     mealPreference?: string;
     mealPreferences?: string | string[];
+
     familyCount?: number;
-    familyMembers?: Array<string | { name?: string; mealPreference?: string }>;
+
+    familyMembers?: Array<
+      string | {
+        name?: string;
+        mealPreference?: string;
+      }
+    >;
+
     checkedIn?: boolean;
     status?: string;
+
     checkedInAt?: string;
     attendedAt?: string;
-    qrCodeDataUrl?: string;
   }
 
   /**
-   * Format raw guest response from Verification API to match UI conventions
+   * Convert the Verification Service guest response
+   * into the Staff Frontend AttendeeInfo structure.
    */
-  const formatGuestForUI = (guest: RawGuestResponse): AttendeeInfo => {
+  const formatGuestForUI = (
+    guest: RawGuestResponse
+  ): AttendeeInfo => {
+    const isCheckedIn =
+      guest.checkedIn === true ||
+      guest.status === "CHECKED_IN";
+
+    const familyMembers =
+      (guest.familyMembers ?? []).map((member) => {
+        if (typeof member === "string") {
+          return {
+            name: member,
+            mealPreference: "VEG",
+          };
+        }
+
+        return {
+          name: member?.name || "Family Member",
+          mealPreference:
+            member?.mealPreference || "VEG",
+        };
+      });
+
     return {
       _id: guest.id || guest._id || "",
       id: guest.id || guest._id || "",
-      fullName: guest.name || guest.fullName || "Guest",
-      name: guest.name || guest.fullName || "Guest",
-      phoneNumber: guest.phone || guest.phoneNumber || "",
-      phone: guest.phone || guest.phoneNumber || "",
-      confirmationNumber: guest.confirmationNumber || "",
-      createdAt: guest.registeredAt || guest.createdAt || new Date().toISOString(),
-      registeredAt: guest.registeredAt || guest.createdAt,
+
+      fullName:
+        guest.name ||
+        guest.fullName ||
+        "Guest",
+
+      name:
+        guest.name ||
+        guest.fullName ||
+        "Guest",
+
+      phoneNumber:
+        guest.phone ||
+        guest.phoneNumber ||
+        "",
+
+      phone:
+        guest.phone ||
+        guest.phoneNumber ||
+        "",
+
+      confirmationNumber:
+        guest.confirmationNumber ||
+        "",
+
+      createdAt:
+        guest.registeredAt ||
+        guest.createdAt ||
+        new Date().toISOString(),
+
+      registeredAt:
+        guest.registeredAt ||
+        guest.createdAt,
+
       attending:
-        guest.attending === true || guest.attending === "Yes" ? "Yes" : "No",
-      mealPreferences: guest.mealPreference || guest.mealPreferences || "VEG",
-      familyCount: guest.familyCount ?? 1,
-      familyMembers: (guest.familyMembers || []).map((m) => {
-        if (typeof m === "string") {
-          return { name: m, mealPreference: "VEG" };
-        }
-        return {
-          name: m?.name || "Family Member",
-          mealPreference: m?.mealPreference || "VEG",
-        };
-      }),
-      attended: guest.checkedIn === true || guest.status === "CHECKED_IN",
-      checkedIn: guest.checkedIn === true || guest.status === "CHECKED_IN",
-      attendedAt: guest.checkedInAt || guest.attendedAt,
-      checkedInAt: guest.checkedInAt || guest.attendedAt,
-      status: guest.status || (guest.checkedIn ? "CHECKED_IN" : "REGISTERED"),
-      qrCodeDataUrl: guest.qrCodeDataUrl,
+        guest.attending === true ||
+        guest.attending === "Yes"
+          ? "Yes"
+          : "No",
+
+      mealPreferences:
+        guest.mealPreference ||
+        guest.mealPreferences ||
+        "VEG",
+
+      familyCount:
+        guest.familyCount ?? 1,
+
+      familyMembers,
+
+      attended: isCheckedIn,
+
+      checkedIn: isCheckedIn,
+
+      attendedAt:
+        guest.checkedInAt ||
+        guest.attendedAt,
+
+      checkedInAt:
+        guest.checkedInAt ||
+        guest.attendedAt,
+
+      status:
+        guest.status ||
+        (isCheckedIn
+          ? "CHECKED_IN"
+          : "REGISTERED"),
     };
   };
 
   /**
-   * Real API Verification with High-Resolution Timing
+   * Verify an attendee using either:
+   *
+   * - 4-digit confirmation number
+   * - phone number
+   *
+   * The request timing is measured on the client so the
+   * Staff UI can display the actual request duration.
    */
   const verifyAttendee = async (value: string) => {
+    const trimmedValue = value.trim();
+
+    if (!trimmedValue) {
+      setError(
+        verificationMethod === "code"
+          ? "Please enter the 4-digit code"
+          : "Please enter the phone number"
+      );
+
+      return;
+    }
+
     setLoading(true);
     setError("");
     setSuccess("");
@@ -108,95 +231,196 @@ export function useAttendeeVerification() {
 
     try {
       let response;
+
       if (verificationMethod === "code") {
-        response = await verifyAttendeeByConfirmation(value);
+        response =
+          await verifyAttendeeByConfirmation(
+            trimmedValue
+          );
       } else {
-        response = await verifyAttendeeByPhone(value);
+        response =
+          await verifyAttendeeByPhone(
+            trimmedValue
+          );
       }
 
-      const clientDurationMs = Math.round(performance.now() - clientStart);
+      const clientDurationMs = Math.round(
+        performance.now() - clientStart
+      );
 
-      if (!response.success || !response.data?.guest) {
-        setError(response.message || "Guest verification failed. Please check the code or phone number.");
-        setLoading(false);
+      /*
+       * The Verification API must return:
+       *
+       * {
+       *   success: true,
+       *   data: {
+       *     guest: ...
+       *   }
+       * }
+       */
+      if (
+        !response.success ||
+        !response.data?.guest
+      ) {
+        setError(
+          response.message ||
+            "Guest verification failed. Please check the code or phone number."
+        );
+
         return;
       }
 
-      const formatted = formatGuestForUI(response.data.guest);
-      setAttendee(formatted);
+      const formattedAttendee =
+        formatGuestForUI(
+          response.data.guest
+        );
+
+      setAttendee(formattedAttendee);
 
       const meta: VerificationMeta = {
-        cache: response.meta?.cache || "MISS",
-        durationMs: response.meta?.durationMs,
+        cache:
+          response.meta?.cache ||
+          "MISS",
+
+        durationMs:
+          response.meta?.durationMs,
+
         clientDurationMs,
-        requestId: response.meta?.requestId,
+
+        requestId:
+          response.meta?.requestId,
       };
+
       setVerificationMeta(meta);
 
-      setSuccess("Attendee identity verified successfully.");
+      setSuccess(
+        "Attendee identity verified successfully."
+      );
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to verify attendee. Please try again.";
-      setError(msg);
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Failed to verify attendee. Please try again.";
+
+      setError(message);
     } finally {
       setLoading(false);
     }
   };
 
-  const submitVerification = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputValue.trim()) {
+  /**
+   * Handle verification form submission.
+   */
+  const submitVerification = (
+    event: FormEvent
+  ) => {
+    event.preventDefault();
+
+    const trimmedValue =
+      inputValue.trim();
+
+    if (!trimmedValue) {
       setError(
         verificationMethod === "code"
           ? "Please enter the 4-digit code"
           : "Please enter the phone number"
       );
+
       return;
     }
-    verifyAttendee(inputValue.trim());
+
+    void verifyAttendee(trimmedValue);
   };
 
   /**
-   * Real API Check-In Execution
+   * Check in the currently verified attendee.
    */
   const checkInAttendee = async () => {
-    if (!attendee) return;
+    if (!attendee) {
+      return;
+    }
+
     setLoading(true);
     setError("");
     setSuccess("");
 
-    const method = verificationMethod === "code" ? "CONFIRMATION" : "PHONE";
+    const method =
+      verificationMethod === "code"
+        ? "CONFIRMATION"
+        : "PHONE";
+
     const value =
       verificationMethod === "code"
-        ? attendee.confirmationNumber || inputValue
-        : attendee.phoneNumber || inputValue;
+        ? attendee.confirmationNumber ||
+          inputValue.trim()
+        : attendee.phoneNumber ||
+          inputValue.trim();
+
+    if (!value) {
+      setError(
+        "Unable to determine the attendee verification value."
+      );
+
+      setLoading(false);
+      return;
+    }
 
     try {
-      const response = await checkInAttendeeApi(method, value);
+      const response =
+        await checkInAttendeeApi(
+          method,
+          value
+        );
 
       if (!response.success) {
-        setError(response.message || "Failed to check in attendee.");
-        setLoading(false);
+        setError(
+          response.message ||
+            "Failed to check in attendee."
+        );
+
         return;
       }
 
-      const now = new Date().toISOString();
-      setAttendee((prev) =>
-        prev
-          ? {
-              ...prev,
-              attended: true,
-              checkedIn: true,
-              attendedAt: response.data?.checkin?.checkedInAt || now,
-              checkedInAt: response.data?.checkin?.checkedInAt || now,
-              status: "CHECKED_IN",
-            }
-          : prev
-      );
+      const checkedInAt =
+        response.data?.checkin
+          ?.checkedInAt ||
+        new Date().toISOString();
 
-      setSuccess("Attendee successfully checked in! Entry authorized.");
+      /*
+       * Update the local attendee state immediately
+       * so the Staff UI reflects the successful check-in
+       * without requiring another verification request.
+       */
+      setAttendee((previous) => {
+        if (!previous) {
+          return previous;
+        }
+
+        return {
+          ...previous,
+
+          attended: true,
+
+          checkedIn: true,
+
+          attendedAt: checkedInAt,
+
+          checkedInAt,
+
+          status: "CHECKED_IN",
+        };
+      });
+
+      setSuccess(
+        "Attendee successfully checked in! Entry authorized."
+      );
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Error executing check-in.";
-      setError(msg);
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Error executing check-in.";
+
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -210,6 +434,7 @@ export function useAttendeeVerification() {
     loading,
     error,
     success,
+
     selectMethod,
     updateInputValue,
     submitVerification,
