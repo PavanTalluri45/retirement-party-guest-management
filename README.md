@@ -537,3 +537,14 @@ For implementation details, refer to service-specific READMEs:
 - [Admin Frontend](retirement-party-frontend-admin/README.md)
 - [Staff Frontend](retirement-party-frontend-staff/README.md)
 - [Guest Frontend](retirement-party-frontend-guest/README.md)
+
+
+
+## Live URLs
+
+### Frontend Applications
+
+- **Admin Frontend:** https://retirement-party-guest-management-f.vercel.app/
+- **Staff Frontend:** https://retirement-party-guest-management-h.vercel.app/
+- **Guest Frontend:** https://retirement-party-guest-management.vercel.app/
+
