@@ -540,11 +540,5 @@ For implementation details, refer to service-specific READMEs:
 
 
 
-## Live URLs
 
-### Frontend Applications
-
-- **Admin Frontend:** https://retirement-party-guest-management-f.vercel.app/
-- **Staff Frontend:** https://retirement-party-guest-management-h.vercel.app/
-- **Guest Frontend:** https://retirement-party-guest-management.vercel.app/
 
