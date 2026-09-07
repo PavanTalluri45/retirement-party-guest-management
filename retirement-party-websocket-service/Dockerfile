@@ -17,6 +17,12 @@ COPY index.js ./
 # Production environment
 ENV NODE_ENV=production
 
-# Start WebSocket Service (Vercel injects PORT dynamically)
-CMD ["node", "src/server.js"]
+# Default WebSocket Service port
+# Render can override this using PORT.
+ENV PORT=4001
 
+# Document container port
+EXPOSE 4001
+
+# Start WebSocket Service
+CMD ["node", "src/server.js"]

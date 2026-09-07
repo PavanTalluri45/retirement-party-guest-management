@@ -213,6 +213,19 @@ jobs:
           - retirement-party-registration-service
           - retirement-party-api-gateway
           - retirement-party-websocket-service
+        include:
+          - service: retirement-party-auth-service
+            dockerfile: Dockerfile.vercel
+          - service: retirement-party-verification-service
+            dockerfile: Dockerfile.vercel
+          - service: retirement-party-analytics-service
+            dockerfile: Dockerfile.vercel
+          - service: retirement-party-registration-service
+            dockerfile: Dockerfile.vercel
+          - service: retirement-party-api-gateway
+            dockerfile: Dockerfile.vercel
+          - service: retirement-party-websocket-service
+            dockerfile: Dockerfile
 
     steps:
 
@@ -267,9 +280,8 @@ jobs:
       # ----------------------------------------------------------
       # Build and push Docker image
       #
-      # IMPORTANT:
-      # Explicitly use Dockerfile.vercel because the default
-      # Dockerfile has been renamed/replaced.
+      # WebSocket Service uses Dockerfile (for Render).
+      # Other backend services use Dockerfile.vercel (for Vercel).
       # ----------------------------------------------------------
 
       - name: Build and push Docker image
@@ -277,7 +289,7 @@ jobs:
 
         with:
           context: ./${{ matrix.service }}
-          file: ./${{ matrix.service }}/Dockerfile.vercel
+          file: ./${{ matrix.service }}/${{ matrix.dockerfile }}
 
           push: true
 
@@ -322,6 +334,6 @@ jobs:
           echo "Docker images were pushed."
           echo ""
           echo "HTTP services are ready for deployment to Vercel."
-          echo "WebSocket service is ready for deployment to Railway."
+          echo "WebSocket service is ready for deployment to Render."
           echo ""
           echo "=========================================="

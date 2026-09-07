@@ -11,10 +11,13 @@ let adminAuthInstance = null;
  *
  * Credential priority:
  *
- * 1. Local ServiceAccountKey.json
+ * 1. Render Secret File
+ *    /etc/secrets/ServiceAccountKey.json
+ *
+ * 2. Local ServiceAccountKey.json
  *    <service-root>/ServiceAccountKey.json
  *
- * 2. Firebase environment variables
+ * 3. Firebase environment variables
  *    FIREBASE_PROJECT_ID
  *    FIREBASE_CLIENT_EMAIL
  *    FIREBASE_PRIVATE_KEY
@@ -71,7 +74,20 @@ export function getAdminAuth() {
     "ServiceAccountKey.json"
   );
 
-  const serviceAccountPath = localServiceAccountPath;
+  /*
+   * Render Secret File path.
+   */
+  const renderServiceAccountPath =
+    "/etc/secrets/ServiceAccountKey.json";
+
+  /*
+   * Prefer the Render Secret File when available on Render.
+   * If running locally, fall back to the local file.
+   */
+  const serviceAccountPath = fs.existsSync(renderServiceAccountPath)
+    ? renderServiceAccountPath
+    : localServiceAccountPath;
+
   const hasKeyFile = fs.existsSync(serviceAccountPath);
 
   /*
@@ -107,7 +123,7 @@ export function getAdminAuth() {
     }
 
     /*
-     * Prefer ServiceAccountKey.json locally.
+     * Prefer ServiceAccountKey.json (Render or local).
      */
     else if (hasKeyFile) {
       const serviceAccount = require(serviceAccountPath);
@@ -122,7 +138,7 @@ export function getAdminAuth() {
     }
 
     /*
-     * Fallback to environment credentials (ideal for Vercel).
+     * Fallback to environment credentials.
      */
     else if (hasEnvCredentials) {
       firebaseApp = initializeApp({
@@ -148,6 +164,7 @@ export function getAdminAuth() {
       throw new Error(
         "[Firebase Admin] No Firebase credentials found.\n" +
           "Checked:\n" +
+          `- ${renderServiceAccountPath}\n` +
           `- ${localServiceAccountPath}\n` +
           "- FIREBASE_PROJECT_ID / FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY"
       );
