@@ -17,12 +17,6 @@ COPY index.js ./
 # Production environment
 ENV NODE_ENV=production
 
-# Default API Gateway port
-# Render can override this using PORT.
-ENV PORT=4000
-
-# Document container port
-EXPOSE 4000
-
-# Start API Gateway
+# Start API Gateway (Vercel injects PORT dynamically)
 CMD ["node", "index.js"]
+

@@ -17,13 +17,10 @@ const require = createRequire(import.meta.url);
  *
  * Credential priority:
  *
- * 1. Render Secret File
- *    /etc/secrets/ServiceAccountKey.json
- *
- * 2. Local ServiceAccountKey.json
+ * 1. Local ServiceAccountKey.json
  *    <service-root>/ServiceAccountKey.json
  *
- * 3. Firebase environment variables
+ * 2. Firebase environment variables
  *    FIREBASE_PROJECT_ID
  *    FIREBASE_CLIENT_EMAIL
  *    FIREBASE_PRIVATE_KEY
@@ -37,7 +34,7 @@ let firebaseApp;
 /*
  * Firebase environment credentials.
  *
- * These remain supported as a fallback.
+ * These remain supported as a primary cloud fallback (recommended for Vercel).
  */
 const hasEnvCredentials =
   Boolean(config.firebase?.projectId) &&
@@ -52,19 +49,7 @@ const localServiceAccountPath = path.resolve(
   "ServiceAccountKey.json"
 );
 
-/*
- * Render Secret File path.
- */
-const renderServiceAccountPath =
-  "/etc/secrets/ServiceAccountKey.json";
-
-/*
- * Prefer Render Secret File.
- */
-const serviceAccountPath = fs.existsSync(renderServiceAccountPath)
-  ? renderServiceAccountPath
-  : localServiceAccountPath;
-
+const serviceAccountPath = localServiceAccountPath;
 const hasKeyFile = fs.existsSync(serviceAccountPath);
 
 /*
@@ -80,13 +65,7 @@ if (getApps().length > 0) {
 }
 
 /*
- * Prefer ServiceAccountKey.json.
- *
- * On Render this comes from:
- * /etc/secrets/ServiceAccountKey.json
- *
- * Locally this comes from:
- * ServiceAccountKey.json
+ * Prefer ServiceAccountKey.json when available locally.
  */
 else if (hasKeyFile) {
   const serviceAccount = require(serviceAccountPath);
@@ -101,7 +80,7 @@ else if (hasKeyFile) {
 }
 
 /*
- * Fallback to environment credentials.
+ * Fallback to environment credentials (ideal for Vercel).
  */
 else if (hasEnvCredentials) {
   firebaseApp = initializeApp({
@@ -124,7 +103,6 @@ else {
   console.error(
     "[Firebase Admin] FATAL: No Firebase credentials found.\n" +
       "Checked:\n" +
-      `- ${renderServiceAccountPath}\n` +
       `- ${localServiceAccountPath}\n` +
       "- FIREBASE_PROJECT_ID / FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY"
   );

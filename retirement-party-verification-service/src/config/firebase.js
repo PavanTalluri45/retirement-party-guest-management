@@ -12,13 +12,10 @@ let adminAuthInstance = null;
  *
  * Credential priority:
  *
- * 1. Render Secret File
- *    /etc/secrets/ServiceAccountKey.json
- *
- * 2. Local ServiceAccountKey.json
+ * 1. Local ServiceAccountKey.json
  *    <service-root>/ServiceAccountKey.json
  *
- * 3. Firebase environment variables
+ * 2. Firebase environment variables
  *    FIREBASE_PROJECT_ID
  *    FIREBASE_CLIENT_EMAIL
  *    FIREBASE_PRIVATE_KEY
@@ -75,19 +72,7 @@ export function getAdminAuth() {
     "ServiceAccountKey.json"
   );
 
-  /*
-   * Render Secret File location.
-   */
-  const renderServiceAccountPath =
-    "/etc/secrets/ServiceAccountKey.json";
-
-  /*
-   * Prefer Render Secret File when available.
-   */
-  const serviceAccountPath = fs.existsSync(renderServiceAccountPath)
-    ? renderServiceAccountPath
-    : localServiceAccountPath;
-
+  const serviceAccountPath = localServiceAccountPath;
   const hasKeyFile = fs.existsSync(serviceAccountPath);
 
   try {
@@ -114,7 +99,7 @@ export function getAdminAuth() {
     }
 
     /*
-     * Render/local ServiceAccountKey.json takes priority.
+     * Local ServiceAccountKey.json takes priority.
      */
     else if (hasKeyFile) {
       const serviceAccount = require(serviceAccountPath);
@@ -152,7 +137,6 @@ export function getAdminAuth() {
       throw new Error(
         "[Firebase Admin] No Firebase credentials found.\n" +
           "Checked:\n" +
-          `- ${renderServiceAccountPath}\n` +
           `- ${localServiceAccountPath}\n` +
           "- FIREBASE_PROJECT_ID / FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY"
       );

@@ -17,12 +17,6 @@ COPY index.js ./
 # Production environment
 ENV NODE_ENV=production
 
-# Default port
-# Render can override this using its PORT environment variable.
-ENV PORT=5000
-
-# Container port documentation
-EXPOSE 5000
-
-# Start Auth Service
+# Start Auth Service (Vercel injects PORT dynamically)
 CMD ["node", "src/server.js"]
+

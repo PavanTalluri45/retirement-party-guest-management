@@ -17,12 +17,6 @@ COPY index.js ./
 # Production environment
 ENV NODE_ENV=production
 
-# Default port
-# Render can override this with its PORT environment variable.
-ENV PORT=5001
-
-# Document the container port
-EXPOSE 5001
-
-# Start Registration Service
+# Start Registration Service (Vercel injects PORT dynamically)
 CMD ["node", "index.js"]
+
