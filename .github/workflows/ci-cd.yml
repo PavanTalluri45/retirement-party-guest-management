@@ -71,14 +71,21 @@ jobs:
       # ----------------------------------------------------------
       # Create Firebase credentials
       #
-      # Auth Service and API Gateway use Firebase Admin SDK.
+      # Firebase Admin SDK is used by:
+      # - Auth Service
+      # - API Gateway
+      # - Verification Service
+      # - WebSocket Service
+      #
       # The credentials are created temporarily on the runner.
       # ----------------------------------------------------------
 
       - name: Create Firebase Service Account
         if: |
           matrix.service == 'retirement-party-auth-service' ||
-          matrix.service == 'retirement-party-api-gateway'
+          matrix.service == 'retirement-party-api-gateway' ||
+          matrix.service == 'retirement-party-verification-service' ||
+          matrix.service == 'retirement-party-websocket-service'
 
         working-directory: ${{ matrix.service }}
 
@@ -160,7 +167,9 @@ jobs:
           always() &&
           (
             matrix.service == 'retirement-party-auth-service' ||
-            matrix.service == 'retirement-party-api-gateway'
+            matrix.service == 'retirement-party-api-gateway' ||
+            matrix.service == 'retirement-party-verification-service' ||
+            matrix.service == 'retirement-party-websocket-service'
           )
 
         working-directory: ${{ matrix.service }}
@@ -175,6 +184,7 @@ jobs:
   # JOB 2: BUILD DOCKER IMAGES
   #
   # Runs only when all tests pass on main.
+  # Uses Dockerfile.vercel for every backend service.
   # ==============================================================
 
   build:
@@ -256,6 +266,10 @@ jobs:
 
       # ----------------------------------------------------------
       # Build and push Docker image
+      #
+      # IMPORTANT:
+      # Explicitly use Dockerfile.vercel because the default
+      # Dockerfile has been renamed/replaced.
       # ----------------------------------------------------------
 
       - name: Build and push Docker image
@@ -263,6 +277,7 @@ jobs:
 
         with:
           context: ./${{ matrix.service }}
+          file: ./${{ matrix.service }}/Dockerfile.vercel
 
           push: true
 
@@ -304,6 +319,9 @@ jobs:
           echo ""
           echo "All backend tests passed."
           echo "All Docker images were built successfully."
-          echo "Docker images were pushed to GHCR."
+          echo "Docker images were pushed."
           echo ""
-          echo "Ready for deployment to Render/Railway."
+          echo "HTTP services are ready for deployment to Vercel."
+          echo "WebSocket service is ready for deployment to Railway."
+          echo ""
+          echo "=========================================="
